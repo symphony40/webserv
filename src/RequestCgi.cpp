@@ -32,8 +32,8 @@ void RequestCgi::_start() {
 		if (_cgiHandler == NULL) {
 			throw std::bad_alloc();
 		}
-		_cgiHandler->_init();
-		_cgiHandler->_execute();
+		_cgiHandler->init();
+		_cgiHandler->execute();
 	} catch (ChildProcessException &e) {
 		throw ChildProcessException();
 	} catch (IntException &e) {

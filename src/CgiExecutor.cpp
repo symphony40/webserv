@@ -33,7 +33,7 @@ CgiExecutor &CgiExecutor::operator=(const CgiExecutor &obj) {
 	return *this;
 }
 
-void CgiExecutor::_init() {
+void CgiExecutor::init() {
 	Logger::log(Logger::DEBUG, "[CgiExecutor::_init] Start CGI Executor");
 	Logger::log(Logger::DEBUG, "[CgiExecutor::_init] Path: %s", _requestCgi->_path.c_str());
 	Logger::log(Logger::DEBUG, "[CgiExecutor::_init] ExecPath: %s", _requestCgi->_execPath.c_str());
@@ -59,24 +59,24 @@ void CgiExecutor::_init() {
 	_env["HTTP_COOKIE"] = _requestCgi->_request->_headers["Cookie"];
 }
 
-void CgiExecutor::_execute() {
-	Logger::log(Logger::DEBUG, "[CgiExecutor::_execute] Start CGI Executor");
-	_envp = _envToChar();
-	_argv = _buildArgv();
+void CgiExecutor::execute() {
+	Logger::log(Logger::DEBUG, "[CgiExecutor::execute] Start CGI Executor");
+	_envp = envToChar();
+	_argv = buildArgv();
 	_StdInBackup = dup(STDIN_FILENO);
 	_StdOutBackup = dup(STDOUT_FILENO);
 
 	if (Utils::createTempFile(_body._path, _body._fd) == -1) {
-		throw std::invalid_argument("[CgiExecutor::_execute] createTempFile failed");
+		throw std::invalid_argument("[CgiExecutor::execute] createTempFile failed");
 	}
 	if (_requestCgi->_request->_body._fd != -1) {
 		if (lseek(_requestCgi->_request->_body._fd, 0, SEEK_SET) == -1) {
-			throw std::invalid_argument("[CgiExecutor::_execute] lseek failed");
+			throw std::invalid_argument("[CgiExecutor::execute] lseek failed");
 		}
 	}
 	_pid = fork();
 	if (_pid == -1) {
-		throw std::invalid_argument("[CgiExecutor::_execute] fork failed");
+		throw std::invalid_argument("[CgiExecutor::execute] fork failed");
 	}
 	if (_pid == 0) {
 		if (_requestCgi->_request->_body._fd != -1) {
@@ -94,7 +94,7 @@ void CgiExecutor::_execute() {
 	}
 }
 
-char **CgiExecutor::_envToChar() {
+char **CgiExecutor::envToChar() {
 	char **envp = new char*[_env.size() + 1];
 	std::map<std::string, std::string>::const_iterator it;
 	int i = -1;
@@ -108,7 +108,7 @@ char **CgiExecutor::_envToChar() {
 	return envp;
 }
 
-char **CgiExecutor::_buildArgv() {
+char **CgiExecutor::buildArgv() {
 	char	**argv = new char*[3];
 	argv[0] = new char[_requestCgi->_execPath.size() + 1];
 	strcpy(argv[0], _requestCgi->_execPath.c_str());

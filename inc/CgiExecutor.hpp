@@ -25,10 +25,10 @@ private:
 	int	_StdOutBackup;
 	time_t _lastActivity;
 	
-	void _init();
-	void _execute();
-	char **_envToChar();
-	char **_buildArgv();
+	void init();
+	void execute();
+	char **envToChar();
+	char **buildArgv();
 
 public:
 	CgiExecutor(RequestCgi* requestCgi);
