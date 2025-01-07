@@ -171,7 +171,7 @@ void BlocServer::setDefaultValue()
 		_listens["0.0.0.0:1234"] = listen;
 	}
 	if (_root.empty())
-		_root = "./www/main";
+		_root = "./html";
 	if (_indexes.empty())
 		_indexes.push_back("index.html");
 }

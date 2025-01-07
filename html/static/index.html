@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Webpage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+            overflow: hidden;
+        }
+        .container {
+            background-color: #1a1a1a;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.7);
+            width: 80%;
+            max-width: 500px;
+        }
+        h1 {
+            color: #32CD32; /* Lime Green */
+            font-size: 3em;
+        }
+        p {
+            color: #90EE90; /* Light Green */
+            font-size: 1.2em;
+        }
+        .test-message {
+            color: #32CD32;
+            padding: 15px;
+            font-size: 1.5em;
+            font-weight: normal;
+            margin-top: 20px;
+            display: inline-block;
+            text-transform: uppercase;
+            animation: fadeIn 2s ease-in-out infinite alternate;
+        }
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .btn-home {
+            background-color: #32CD32;
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: background-color 0.3s ease;
+        }
+        .btn-home:hover {
+            background-color: #228B22;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Test Webpage</h1>
+    <p>This page is a simple test to check if your web server can serve static web pages.</p>
+    
+    <div class="test-message">
+        Server is working perfectly!
+    </div>
+    
+    <button class="btn-home" onclick="window.location.href='/'">Return to Home Page</button>
+</div>
+
+</body>
+</html>
+

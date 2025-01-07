@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delete File</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+            overflow: hidden;
+        }
+        .container {
+            background-color: #1a1a1a;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.7);
+            width: 80%;
+            max-width: 500px;
+        }
+        h1 {
+            color: #32CD32;
+            font-size: 3em;
+        }
+        label {
+            color: #90EE90;
+            font-size: 1.2em;
+            margin-right: 10px;
+        }
+        input[type="file"] {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 1em;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #32CD32;
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #228B22;
+        }
+        .btn-home {
+            background-color: #32CD32;
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: background-color 0.3s ease;
+        }
+        .btn-home:hover {
+            background-color: #228B22;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Delete a File</h1>
+    <form action="/delete" method="POST">
+        <label for="filename">File to delete:</label>
+        <input type="text" id="filename" name="filename">
+        <button type="submit">Delete</button>
+    </form>
+     <button class="btn-home" onclick="window.location.href='/'">Return to Home Page</button>
+</div>
+
+</body>
+</html>
+
