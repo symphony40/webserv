@@ -4,13 +4,13 @@ Server::Server() : _state(SERVER_STATE_INIT), _epollFD(-1) {}
 
 Server::~Server() {
 	if (_epollFD != -1) {
-		Utils::protectedCall(close(_epollFD), "Faild to close epoll instance", false);
+		Utils::protectedCall(close(_epollFD), "Failed to close epoll instance", false);
 	}
-	for (std::map<int, Socket*>::iterator it = _sockets.begin(); it != _sockets.end(); it++) {
+	for (std::map<int, Socket *>::iterator it = _sockets.begin(); it != _sockets.end(); it++) {
 		delete it->second;
 	}
 	_sockets.clear();
-	for (std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); it++) {
+	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); it++) {
 		delete it->second;
 	}
 	_clients.clear();
@@ -24,8 +24,8 @@ void Server::init() {
 	Logger::log(Logger::DEBUG, "#------------------------------#");
 	Logger::log(Logger::DEBUG, "|  Create listening sockets... |");
 	Logger::log(Logger::DEBUG, "#------------------------------#");
-	std::map<std::string, std::vector<BlocServer> > &servers = _configParser.getServers();
-	for (std::map<std::string, std::vector<BlocServer> >::iterator it = servers.begin(); it != servers.end(); it++) {
+	std::map<std::string, std::vector<BlockConfigServer> > &servers = _configParser.getServers();
+	for (std::map<std::string, std::vector<BlockConfigServer> >::iterator it = servers.begin(); it != servers.end(); it++) {
 		int socketFD = Utils::protectedCall(socket(AF_INET, SOCK_STREAM, 0), "Error with socket function");
 		_sockets[socketFD] = new Socket(socketFD, Utils::extractAddress(it->first), Utils::extractPort(it->first), &it->second);
 		Utils::socketEpollAdd(_epollFD, socketFD, REQUEST_FLAGS);
@@ -35,8 +35,8 @@ void Server::init() {
 
 void Server::handleClientConnection(int fd) {
 	Logger::log(Logger::DEBUG, "[Server::handleClientConnection] New client connected on file descriptor %d", fd);
-	struct sockaddr_in	addr;
-	socklen_t			addrLen = sizeof(addr);
+	struct sockaddr_in addr;
+	socklen_t addrLen = sizeof(addr);
 	int clientFD = Utils::protectedCall(accept(fd, (struct sockaddr *)&addr, &addrLen), "Error with accept function");
 	_clients[clientFD] = new Client(clientFD, _sockets[fd]);
 	Utils::protectedCall(fcntl(clientFD, F_SETFL, O_NONBLOCK), "Error with fcntl function");
@@ -88,7 +88,7 @@ void Server::checkTimeouts(time_t currentTime) {
 	std::map<int, Client *>::iterator it = _clients.begin();
 	while (it != _clients.end()) {
 		it->second->getRequest()->checkTimeout();
-		if (currentTime - it->second->getLastActivity() > INACTIVITY_TIMEOUT) {
+		if (currentTime - it->second->getTimeOfLastActivity() > INACTIVITY_TIMEOUT) {
 			Logger::log(Logger::DEBUG, "[Server::checkTimeouts] Client %d timed out", it->first);
 			Utils::socketEpollDelete(_epollFD, it->first);
 			delete it->second;

@@ -1,11 +1,11 @@
 #ifndef CGIHANDLER_HPP
 #define CGIHANDLER_HPP
 
+#include <ctime>
 #include <iostream>
 #include <map>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <ctime>
 
 #include "Utils.hpp"
 
@@ -16,6 +16,7 @@ class Response;
 
 class CgiHandler {
 	friend class Response;
+
 public:
 	enum cgiHandlerState {
 		INIT,
@@ -26,15 +27,14 @@ public:
 		BODY,
 		FINISH
 	};
-	CgiHandler(Response* response);
-	CgiHandler(const CgiHandler &src);
+	CgiHandler(Response *response);
+	CgiHandler(CgiHandler const &obj);
 	~CgiHandler();
+	CgiHandler &operator=(CgiHandler const &obj);
 
-	CgiHandler &operator=(CgiHandler const &src);
-
+	static std::string getState(cgiHandlerState state);
 	std::string getOutput() const;
 	cgiHandlerState getState() const;
-	static std::string getStateStr(cgiHandlerState state);
 
 private:
 	Response *_response;
@@ -45,14 +45,14 @@ private:
 	bool _isChunked;
 	cgiHandlerState _state;
 
-	void setState(cgiHandlerState state);
+	int checkHeaders();
 	void parse(const std::string &data);
+	void parseBody();
+	void parseChunkedBody();
 	void parseHeaders();
 	void parseHeadersKey();
 	void parseHeadersValue();
-	void parseBody();
-	void parseChunkedBody();
-	int checkHeaders();
+	void setState(cgiHandlerState state);
 
 };
 

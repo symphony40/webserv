@@ -1,25 +1,6 @@
 #include "CgiHandler.hpp"
 
-CgiHandler::CgiHandler(Response *response) : _response(response), _isChunked(false), _state(CgiHandler::INIT) {}
-
-CgiHandler::CgiHandler(const CgiHandler &obj) {	*this = obj; }
-
-CgiHandler::~CgiHandler() {}
-
-CgiHandler &CgiHandler::operator=(const CgiHandler &obj) {
-	if (this != &obj) {
-		_response = obj._response;
-		_output = obj._output;
-		_headers = obj._headers;
-		_tmpHeaderKey = obj._tmpHeaderKey;
-		_tmpHeaderValue = obj._tmpHeaderValue;
-		_isChunked = obj._isChunked;
-		_state = obj._state;
-	}
-	return *this;
-}
-
-std::string	CgiHandler::getStateStr(cgiHandlerState state) {
+std::string	CgiHandler::getState(cgiHandlerState state) {
 	switch (state) {
 		case INIT: return "INIT";
 		case HEADERS_PARSE_KEY: return "HEADERS_PARSE_KEY";
@@ -32,12 +13,30 @@ std::string	CgiHandler::getStateStr(cgiHandlerState state) {
 	}
 }
 
+CgiHandler::CgiHandler(Response *response) : _response(response), _isChunked(false), _state(CgiHandler::INIT) {}
+
+CgiHandler::CgiHandler(CgiHandler const &obj) { *this = obj; }
+
+CgiHandler::~CgiHandler() {}
+
+CgiHandler &CgiHandler::operator=(CgiHandler const &obj) {
+	if (this != &obj) {
+		_response = obj._response;
+		_output = obj._output;
+		_headers = obj._headers;
+		_tmpHeaderKey = obj._tmpHeaderKey;
+		_tmpHeaderValue = obj._tmpHeaderValue;
+		_isChunked = obj._isChunked;
+		_state = obj._state;
+	}
+	return *this;
+}
 
 void CgiHandler::setState(cgiHandlerState state) {
 	if (_state == CgiHandler::FINISH || _state == state) {
 		return;
 	}
-	Logger::log(Logger::DEBUG, "CgiHandler state: %s -> %s", getStateStr(_state).c_str(), getStateStr(state).c_str());
+	Logger::log(Logger::DEBUG, "CgiHandler state: %s -> %s", getState(_state).c_str(), getState(state).c_str());
 	_state = state;
 	if (_state == CgiHandler::BODY) {
 		if (_headers.find("content-length") == _headers.end()) {
@@ -55,6 +54,7 @@ void CgiHandler::setState(cgiHandlerState state) {
 	} else if (_state == CgiHandler::FINISH) {
 		return _response->setState(Response::FINISH);
 	}
+
 }
 
 void CgiHandler::parse(const std::string &data) {
@@ -66,12 +66,12 @@ void CgiHandler::parse(const std::string &data) {
 	parseBody();
 }
 
-void	CgiHandler::parseHeaders() {
+void CgiHandler::parseHeaders() {
 	if (_state < CgiHandler::INIT) {
-		return (Logger::log(Logger::DEBUG, "Request line not parsed yet"));
+		return Logger::log(Logger::DEBUG, "Request line not parsed yet");
 	}
 	if (_state > CgiHandler::HEADERS_END) {
-		return (Logger::log(Logger::DEBUG, "Headers already parsed"));
+		return Logger::log(Logger::DEBUG, "Headers already parsed");
 	}
 	if (_state == CgiHandler::INIT) {
 		_state = CgiHandler::HEADERS_PARSE_KEY;
@@ -117,7 +117,7 @@ void CgiHandler::parseHeadersKey() {
 			return setState(CgiHandler::BODY);
 		}
 		if (_output.size() < 2) {
-			return;
+			return ;
 		}
 		if (_output[1] == '\n') {
 			_output.erase(0, 2);
@@ -159,9 +159,8 @@ void CgiHandler::parseHeadersValue() {
 	size_t i = -1;
 	size_t rawSize = _output.size();
 	bool found = false;
-	while (++i < rawSize) {
+	while (++i < rawSize)	{
 		if (_tmpHeaderValue.empty() && (_output[i] == ' ' || _output[i] == '\t')) {
-			i++;
 			continue;
 		}
 		if (!std::isprint(_output[i])) {
@@ -172,7 +171,10 @@ void CgiHandler::parseHeadersValue() {
 	}
 	_output.erase(0, i);
 	if (found) {
-		if (_tmpHeaderValue.empty() || _headers.find(_tmpHeaderKey) != _headers.end()) {
+		if (_tmpHeaderValue.empty()) {
+			return _response->setError(500);
+		}
+		if (_headers.find(_tmpHeaderKey) != _headers.end()) {
 			return _response->setError(500);
 		}
 		_headers[Utils::toLowerCase(_tmpHeaderKey)] = _tmpHeaderValue;
@@ -184,10 +186,10 @@ void CgiHandler::parseHeadersValue() {
 
 void CgiHandler::parseBody() {
 	if (_state < CgiHandler::BODY) {
-		return (Logger::log(Logger::DEBUG, "Headers not parsed yet"));
+		return Logger::log(Logger::DEBUG, "Headers not parsed yet");
 	}
 	if (_state > CgiHandler::BODY) {
-		return (Logger::log(Logger::DEBUG, "Body already parsed"));
+		return Logger::log(Logger::DEBUG, "Body already parsed");
 	}
 	if (_isChunked) {
 		std::string chunkSizeStr = Utils::intToHex(_output.size()) + "\r\n";
@@ -200,22 +202,23 @@ void CgiHandler::parseBody() {
 
 int	CgiHandler::checkHeaders() {
 	if (_headers.empty()) {
-		return (_response->setError(502), FAIL);
+		return _response->setError(502), FAIL;
 	}
 	if (_headers.find("status") != _headers.end()) {
-		int statusCode = atoi(_headers["statusCode"].c_str());
-		_response->_request->setStateCode(statusCode);
-		if (statusCode >= 400) {
-			return (_response->setError(statusCode), FAIL);
+		int status = atoi(_headers["status"].c_str());
+		_response->_request->setStateCode(status);
+		if (status >= 400) {
+			return _response->setError(status), FAIL;
 		}
 		_headers.erase("status");
 	}
 	if (_headers.find("content-type") == _headers.end()) {
-		return (_response->setError(502), FAIL);
+		return _response->setError(502), FAIL;
 	}
 	return OK;
 }
 
-std::string CgiHandler::getOutput() const { return _output; }
 
-CgiHandler::cgiHandlerState CgiHandler::getState() const { return _state; }
+std::string CgiHandler::getOutput(void) const { return _output; }
+
+CgiHandler::cgiHandlerState CgiHandler::getState(void) const { return _state; }

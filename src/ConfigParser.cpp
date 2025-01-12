@@ -5,11 +5,11 @@ ConfigParser::ConfigParser() : _filename("") {}
 ConfigParser::~ConfigParser() {} 
 
 
-std::vector<std::string> ConfigParser::supportedMethods = ConfigParser::_getSupportedMethods();
+std::vector<std::string> ConfigParser::supportedMethods = ConfigParser::getSupportedHttpMethods();
 
-std::vector<std::string> ConfigParser::supportedHttpVersions = ConfigParser::_getSupportedHttpVersions();
+std::vector<std::string> ConfigParser::supportedHttpVersions = ConfigParser::getSupportedHttpVersions();
 
-bool ConfigParser::isStartBlocServer(std::vector<std::string> tokens) {
+bool ConfigParser::isStartBlockConfigServer(std::vector<std::string> tokens) {
 	return ((tokens.size() == 2 && tokens[0] == "server" && tokens[1] == "{")) 
 				|| (tokens.size() == 1 && tokens[0] == "server{");
 }
@@ -28,14 +28,14 @@ void ConfigParser::checkDoubleServerName() {
 
 void ConfigParser::assignConfigs() {
 	for (size_t i = 0; i < _servers.size(); i++) {
-		std::map<std::string, ListenConfig> listens = _servers[i].getListens();
-		for (std::map<std::string, ListenConfig>::iterator it = listens.begin(); it != listens.end(); it++) {
+		std::map<std::string, ConfigListener> listens = _servers[i].getListeners();
+		for (std::map<std::string, ConfigListener>::iterator it = listens.begin(); it != listens.end(); it++) {
 			_configs[it->first].push_back(_servers[i]);
 		}	
 	}
 }
 
-void ConfigParser::parse(const std::string &filename) {
+void ConfigParser::parse(std::string const &filename) {
 	_filename = filename;
 	Logger::log(Logger::DEBUG, "Parsing config file: %s", _filename.c_str());
 	std::ifstream configFile(_filename.c_str());
@@ -46,21 +46,21 @@ void ConfigParser::parse(const std::string &filename) {
 		Logger::log(Logger::FATAL, "File %s can't be opened or doesn't exist", _filename.c_str());
 	}
 	while (std::getline(configFile, line)) {
-		ConfigParser::countFileLines++;
+		ConfigParser::fileLineCount++;
 		line = Utils::trimLine(line);
 		if (line.empty() || line[0] == '#') {
 			continue;
 		}
 		tokens = Utils::split(line, " ");
-		if (isStartBlocServer(tokens)) {
-			BlocServer server(_filename);
+		if (isStartBlockConfigServer(tokens)) {
+			BlockConfigServer server(_filename);
 			_servers.push_back(server.getServerConfig(configFile));
 		} else {
-			Logger::log(Logger::FATAL, "Invalid line: \"%s\" in file: %s:%d", line.c_str(), _filename.c_str(), ConfigParser::countFileLines);
+			Logger::log(Logger::FATAL, "Invalid line: \"%s\" in file: %s:%d", line.c_str(), _filename.c_str(), ConfigParser::fileLineCount);
 		}
 	}
 	if (_servers.size() == 0){
-		BlocServer server(_filename);
+		BlockConfigServer server(_filename);
 		_servers.push_back(server.getServerConfig(configFile));
 	}
 	checkDoubleServerName();
@@ -77,7 +77,7 @@ void ConfigParser::printServers() {
 	}
 }
 
-std::vector<std::string> ConfigParser::_getSupportedMethods() {
+std::vector<std::string> ConfigParser::getSupportedHttpMethods() {
 	std::vector<std::string> methods;
 	methods.push_back("GET");
 	methods.push_back("POST");
@@ -90,7 +90,7 @@ bool ConfigParser::isMethodSupported(std::string method) {
 	return (std::find(ConfigParser::supportedMethods.begin(), ConfigParser::supportedMethods.end(), method) != ConfigParser::supportedMethods.end());
 }
 
-std::vector<std::string> ConfigParser::_getSupportedHttpVersions() {
+std::vector<std::string> ConfigParser::getSupportedHttpVersions() {
 	std::vector<std::string> versions;
 	versions.push_back("HTTP/1.0");
 	versions.push_back("HTTP/1.1");
@@ -101,6 +101,6 @@ bool ConfigParser::isHttpVersionSupported(std::string version) {
 	return (std::find(ConfigParser::supportedHttpVersions.begin(), ConfigParser::supportedHttpVersions.end(), version) != ConfigParser::supportedHttpVersions.end());
 }
 
-std::map<std::string, std::vector<BlocServer> > &ConfigParser::getServers() { return _configs; }
+std::map<std::string, std::vector<BlockConfigServer> > &ConfigParser::getServers() { return _configs; }
 
-// std::map<std::string, std::vector<BlocServer> > ConfigParser::getConfigs() const { return _configs; }
+// std::map<std::string, std::vector<BlockConfigServer> > ConfigParser::getConfigs() const { return _configs; }

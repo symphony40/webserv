@@ -1,23 +1,23 @@
 #include "Client.hpp"
 
-Client::Client(int fd, Socket* socket) : _fd(fd), _socket(socket), _request(new Request(this)), _response(new Response(this)), _lastActivity(time(NULL)) {}
+Client::Client(int fd, Socket *socket) : _fd(fd), _socket(socket), _request(new Request(this)), _response(new Response(this)), _lastActivityAt(time(NULL)) {}
 
 Client::~Client() {
 	if (_fd != -1) {
 		Utils::protectedCall(close(_fd), "[~Client] Failed to close client socket", false);
 	}
-	if (_request != NULL) {
+	if (_request) {
 		delete _request;
 	}
-	if (_response != NULL) {
+	if (_response) {
 		delete _response;
 	}
 }
 
 void Client::handleRequest() {
 	Logger::log(Logger::DEBUG, "[handleRequest] Handling request from client %d", _fd);
-	char	buffer[CLIENT_READ_BUFFER_SIZE + 1];
-	int		bytesRead = 0;
+	char buffer[CLIENT_READ_BUFFER_SIZE + 1];
+	int bytesRead = 0;
 
 	memset(buffer, 0, CLIENT_READ_BUFFER_SIZE + 1);
 	bytesRead  = recv(_fd, buffer, CLIENT_READ_BUFFER_SIZE, 0);
@@ -26,7 +26,7 @@ void Client::handleRequest() {
 		buffer[bytesRead] = '\0';
 	} else if (bytesRead < 0) {
 		throw std::runtime_error("Error with recv function");
-	} else if (bytesRead == 0) {
+	} else if (!bytesRead) {
 		throw Client::DisconnectedException();
 	}
 	
@@ -76,7 +76,7 @@ void Client::checkCgi() {
 	if (!_request || !_request->_cgi._isCGI) {
 		return;
 	}
-	return _request->_cgi._checkState();
+	return _request->_cgi.checkState();
 }
 
 
@@ -88,6 +88,6 @@ Socket *Client::getSocket() const { return _socket; }
 
 Response *Client::getResponse() const { return _response; }
 
-time_t Client::getLastActivity() const { return _lastActivity; }
+time_t Client::getTimeOfLastActivity() const { return _lastActivityAt; }
 
-void Client::updateLastActivity() { _lastActivity = time(NULL); }
+void Client::updateLastActivity() { _lastActivityAt = time(NULL); }

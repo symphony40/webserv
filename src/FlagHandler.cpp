@@ -1,7 +1,7 @@
 #include "FlagHandler.hpp"
 
-FlagHandler::FlagHandler(int argc, char **argv) : _argc(argc), _argv(argv), _configFilePath(DEFAULT_CONFIG_FILE_PATH), _options(_generateOptions()) {
-	_parse();
+FlagHandler::FlagHandler(int argc, char **argv) : _argc(argc), _argv(argv), _configFilePath(DEFAULT_CONFIG_FILE_PATH), _options(generateOptions()) {
+	parse();
 	if (isOption("--quiet")) {
 		Logger::setLogState(false);
 	}
@@ -18,7 +18,7 @@ FlagHandler::FlagHandler(int argc, char **argv) : _argc(argc), _argv(argv), _con
 
 FlagHandler::~FlagHandler() {}
 
-std::map<std::string, bool> FlagHandler::_generateOptions() {
+std::map<std::string, bool> FlagHandler::generateOptions() {
 	std::map<std::string, bool> options;
 	options["--debug"] = false;
 	options["--help"] = false;
@@ -28,7 +28,7 @@ std::map<std::string, bool> FlagHandler::_generateOptions() {
 	return (options);
 }
 
-std::string FlagHandler::_convertToLongOption(std::string option) {
+std::string FlagHandler::convertToLongOption(std::string option) {
 	if (option == "-d")	return ("--debug");
 	if (option == "-h")	return ("--help");
 	if (option == "-l")	return ("--log");
@@ -37,7 +37,7 @@ std::string FlagHandler::_convertToLongOption(std::string option) {
 	return (option);
 }
 
-std::string FlagHandler::_convertToShortOption(std::string option) {
+std::string FlagHandler::convertToShortOption(std::string option) {
 	if (option == "--debug") return ("-d");
 	if (option == "--help") return ("-h");
 	if (option == "--log") return ("-l");
@@ -46,7 +46,7 @@ std::string FlagHandler::_convertToShortOption(std::string option) {
 	return (option);
 }
 
-void FlagHandler::_parse() {
+void FlagHandler::parse() {
 	try {
 		for (int i = 1; i < _argc; i++) {
 			std::string arg = _argv[i];
@@ -81,7 +81,7 @@ void FlagHandler::_parse() {
 }
 
 bool FlagHandler::isOption(std::string option) {
-	std::string opt = _convertToLongOption(option);
+	std::string opt = convertToLongOption(option);
 	if (_options.find(opt) != _options.end() && _options[opt] == true) {
 		return true;
 	}

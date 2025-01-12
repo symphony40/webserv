@@ -1,20 +1,20 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
+#include <algorithm>
+#include <arpa/inet.h>
 #include <iostream>
 #include <map>
-#include <vector>
 #include <sys/epoll.h>
-#include <arpa/inet.h>
-#include <algorithm>
+#include <vector>
 
-#include "ConfigParser.hpp"
-#include "Socket.hpp"
+#include "BlockConfigServer.hpp"
 #include "Client.hpp"
-#include "BlocServer.hpp"
-#include "Response.hpp"
-#include "Utils.hpp"
+#include "ConfigParser.hpp"
 #include "Request.hpp"
+#include "Response.hpp"
+#include "Socket.hpp"
+#include "Utils.hpp"
 
 #define SERVER_DEFAULT_EPOLL_WAIT 500
 #define TIMEOUT_CHECK_INTERVAL 5

@@ -1,6 +1,6 @@
 #include "CgiExecutor.hpp"
 
-CgiExecutor::CgiExecutor(RequestCgi *requestCgi) : _requestCgi(requestCgi), _envp(NULL), _argv(NULL), _body(true), _pid(-1), _StdInBackup(-1), _StdOutBackup(-1) {}
+CgiExecutor::CgiExecutor(RequestCgi *requestCgi) : _requestCgi(requestCgi), _envp(NULL), _argv(NULL), _body(true), _pid(FAIL), _tmpStdin(FAIL), _tmpStdout(FAIL) {}
 
 CgiExecutor::CgiExecutor(const CgiExecutor &obj) { *this = obj; }
 
@@ -16,13 +16,13 @@ CgiExecutor::~CgiExecutor() {
 		}
 		delete[] _argv;
 	}
-	if (_StdInBackup != -1)	{
-		close(_StdInBackup);
-		_StdInBackup = -1;
+	if (_tmpStdin != FAIL)	{
+		close(_tmpStdin);
+		_tmpStdin = FAIL;
 	}
-	if (_StdOutBackup != -1) {
-		close(_StdOutBackup);
-		_StdOutBackup = -1;
+	if (_tmpStdout != FAIL) {
+		close(_tmpStdout);
+		_tmpStdout = FAIL;
 	}
 }
 
@@ -34,16 +34,16 @@ CgiExecutor &CgiExecutor::operator=(const CgiExecutor &obj) {
 }
 
 void CgiExecutor::init() {
-	Logger::log(Logger::DEBUG, "[CgiExecutor::_init] Start CGI Executor");
-	Logger::log(Logger::DEBUG, "[CgiExecutor::_init] Path: %s", _requestCgi->_path.c_str());
-	Logger::log(Logger::DEBUG, "[CgiExecutor::_init] ExecPath: %s", _requestCgi->_execPath.c_str());
+	Logger::log(Logger::DEBUG, "[CgiExecutor::init] Start CGI Executor");
+	Logger::log(Logger::DEBUG, "[CgiExecutor::init] Path: %s", _requestCgi->_path.c_str());
+	Logger::log(Logger::DEBUG, "[CgiExecutor::init] ExecPath: %s", _requestCgi->_execPath.c_str());
 
 	_env["SERVER_SOFTWARE"] = "webserv/1.0";
 	_env["SERVER_NAME"] = _requestCgi->_request->_headers["Host"];
 	_env["SERVER_PROTOCOL"] = _requestCgi->_request->_httpVersion;
 	_env["SERVER_PORT"] = Utils::intToString(_requestCgi->_request->_client->getSocket()->getPort());
 	_env["REDIRECT_STATUS"] = "200";
-	_env["REQUEST_METHOD"] = _requestCgi->_request->_method;
+	_env["REQUEST_METHOD"] = _requestCgi->_request->_httpMethod;
 	_env["GATEWAY_INTERFACE"] = "CGI/1.1";
 	_env["SCRIPT_NAME"] = _requestCgi->_path;
 	_env["SCRIPT_FILENAME"] = _requestCgi->_path;
@@ -63,28 +63,28 @@ void CgiExecutor::execute() {
 	Logger::log(Logger::DEBUG, "[CgiExecutor::execute] Start CGI Executor");
 	_envp = envToChar();
 	_argv = buildArgv();
-	_StdInBackup = dup(STDIN_FILENO);
-	_StdOutBackup = dup(STDOUT_FILENO);
+	_tmpStdin = dup(STDIN_FILENO);
+	_tmpStdout = dup(STDOUT_FILENO);
 
-	if (Utils::createTempFile(_body._path, _body._fd) == -1) {
+	if (Utils::createTempFile(_body._path, _body._fd) == FAIL) {
 		throw std::invalid_argument("[CgiExecutor::execute] createTempFile failed");
 	}
-	if (_requestCgi->_request->_body._fd != -1) {
-		if (lseek(_requestCgi->_request->_body._fd, 0, SEEK_SET) == -1) {
+	if (_requestCgi->_request->_body._fd != FAIL) {
+		if (lseek(_requestCgi->_request->_body._fd, 0, SEEK_SET) == FAIL) {
 			throw std::invalid_argument("[CgiExecutor::execute] lseek failed");
 		}
 	}
 	_pid = fork();
-	if (_pid == -1) {
+	if (_pid == FAIL) {
 		throw std::invalid_argument("[CgiExecutor::execute] fork failed");
 	}
 	if (_pid == 0) {
-		if (_requestCgi->_request->_body._fd != -1) {
-			if (dup2(_requestCgi->_request->_body._fd, STDIN_FILENO) == -1) {
+		if (_requestCgi->_request->_body._fd != FAIL) {
+			if (dup2(_requestCgi->_request->_body._fd, STDIN_FILENO) == FAIL) {
 				throw ChildProcessException();
 			}
 		}
-		if (dup2(_body._fd, STDOUT_FILENO) == -1) {
+		if (dup2(_body._fd, STDOUT_FILENO) == FAIL) {
 			throw ChildProcessException();
 		}
 		execve(_argv[0], _argv, _envp);
@@ -97,7 +97,7 @@ void CgiExecutor::execute() {
 char **CgiExecutor::envToChar() {
 	char **envp = new char*[_env.size() + 1];
 	std::map<std::string, std::string>::const_iterator it;
-	int i = -1;
+	int i = FAIL;
 
 	for (it = _env.begin(); it != _env.end(); it++) {
 		std::string env = it->first + "=" + it->second;

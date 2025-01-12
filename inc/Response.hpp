@@ -1,19 +1,19 @@
 #ifndef RESPONSE_HPP
 #define RESPONSE_HPP
 
+#include <fstream>
 #include <iostream>
 #include <string>
-#include <fstream>
-#include <sys/stat.h>
 #include <sys/epoll.h>
+#include <sys/stat.h>
 
-#include "Request.hpp"
-#include "Client.hpp"
-#include "BlocServer.hpp"
-#include "Utils.hpp"
-#include "BlocLocation.hpp"
-#include "ErrorPage.hpp"
+#include "BlockConfigLocation.hpp"
+#include "BlockConfigServer.hpp"
 #include "CgiHandler.hpp"
+#include "Client.hpp"
+#include "ErrorPage.hpp"
+#include "Request.hpp"
+#include "Utils.hpp"
 
 #define RESPONSE_READ_BUFFER_SIZE 	4096
 #define THRESHOLD_LARGE_FILE 		100000
@@ -34,7 +34,7 @@ public:
 	std::string getResponse() const;
 	size_t	getResponseSize() const;
 	int generateResponse(int epollFD);
-	std::vector<std::string> getAllPathsLocation();
+	std::vector<std::string> getAllPathLocations();
 	CgiHandler &getCgiHandler();
 	void setError(int code, bool generatePage = true);
 
@@ -45,7 +45,7 @@ private:
 	responseState _state;
 	int _fileFd;
 
-	bool isLargeFile(const std::string& path);
+	bool isLargeFile(std::string const& path);
 	bool isRedirect();
 	int	handleCgi();
 	std::string findGoodPath(std::vector<std::string> allPaths);
@@ -57,9 +57,9 @@ private:
 	void handleLocation();
 	void handleNotFound(std::string directoryToCheck);
 	void handleServer();
-	void prepareChunkedResponse(const std::string &path);
-	void prepareStandardResponse(const std::string &path);
-	void setHeaderChunked(const std::string &path);
+	void prepareChunkedResponse(std::string const &path);
+	void prepareStandardResponse(std::string const &path);
+	void setHeaderChunked(std::string const &path);
 	void setState(responseState state);
 };
 

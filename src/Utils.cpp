@@ -1,3 +1,4 @@
+#include "main.hpp"
 #include "Utils.hpp"
 
 int Utils::createTempFile(std::string &path, int &fd) {
@@ -91,13 +92,13 @@ bool Utils::directoryExist(const char *path) {
 	return (info.st_mode & S_IFDIR) != 0;
 }
 
-bool Utils::fileExists(const std::string& path) {
+bool Utils::fileExists(std::string const& path) {
     struct stat buffer;
     return stat(path.c_str(), &buffer) == 0 && S_ISREG(buffer.st_mode);
 }
 
 std::string Utils::trimLine(std::string &line) {
-	const std::string whiteSpace = " \t\n\r\f\v";
+	std::string const whiteSpace = " \t\n\r\f\v";
 	std::string res;
 	int start = 0;
 	while (whiteSpace.find(line[start]) != std::string::npos) {
@@ -143,8 +144,9 @@ std::string Utils::intToString(int num) {
 int Utils::protectedCall(int code, std::string message, bool isFatal) {
 	if (code < 0) {
 		if (isFatal) {
-			// Logger::log(Logger::FATAL, message.c_str());
-			std::cout << "MESSAGE: " << code << std::endl;
+			if (g_server->getState() != SERVER_STATE_STOP) {
+				Logger::log(Logger::FATAL, message.c_str());
+			}
 		} else {
 			Logger::log(Logger::ERROR, message.c_str());
 		}
@@ -161,7 +163,7 @@ int Utils::extractPort(std::string addressPort) {
 }
 	
 bool Utils::isEmptyFile() {
-	return ConfigParser::countFileLines == 0;
+	return ConfigParser::fileLineCount == 0;
 }
 
 std::string Utils::intToHex(ssize_t num) {
@@ -170,7 +172,7 @@ std::string Utils::intToHex(ssize_t num) {
     return stream.str();
 }
 
-std::string Utils::getExtension(const std::string &path, bool includeDot) {
+std::string Utils::getExtension(std::string const &path, bool includeDot) {
 	std::string ext;
 	std::string::size_type i = path.rfind('.');
 	if (i != std::string::npos) {
@@ -328,7 +330,7 @@ void Utils::cleanPath(std::string& path) {
 	}
 }
 
-bool Utils::isPathWithinRoot(const std::string &root, std::string &path) {
+bool Utils::isPathWithinRoot(std::string const &root, std::string &path) {
 	size_t i = -1;
 	while (++i < root.size() && i < path.size()) {
 		if (root[i] != path[i]) {
@@ -345,25 +347,21 @@ std::string Utils::listDirectory(std::string path, std::string root) {
 	}
 	Logger::log(Logger::DEBUG, "Root: %s", root.c_str());
 	Logger::log(Logger::DEBUG, "Path: %s", path.c_str());
-
 	if (!Utils::isPathWithinRoot(root, path)) {
 		Logger::log(Logger::ERROR, "Path asked is not within root");
 		return ErrorPage::getPage(403);
 	}
-	
 	DIR *dir = opendir(path.c_str());
-	if (dir == NULL) {
+	if (!dir) {
 		Logger::log(Logger::ERROR, "Failed to open directory: %s", path.c_str());
 		return ErrorPage::getPage(404);
 	}
-	
 	std::vector<std::string> files;
 	struct dirent *ent;
-	while ((ent = readdir(dir)) != NULL) {
+	while ((ent = readdir(dir))) {
 		files.push_back(ent->d_name);
 	}
 	closedir(dir);
-
 	std::string body = Utils::buildPage(files, path, root);
 	std::string header = "HTTP/1.1 200 OK\r\n";
 	header += "Content-Type: text/html\r\n";

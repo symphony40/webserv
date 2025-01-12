@@ -23,13 +23,13 @@ RequestCgi &RequestCgi::operator=(RequestCgi const &obj) {
 	return *this;
 }
 
-void RequestCgi::_start() {
+void RequestCgi::start() {
 	try {
 		if (_cgiHandler) {
 			delete _cgiHandler;
 		}
 		_cgiHandler = new CgiExecutor(this);
-		if (_cgiHandler == NULL) {
+		if (!_cgiHandler) {
 			throw std::bad_alloc();
 		}
 		_cgiHandler->init();
@@ -44,8 +44,8 @@ void RequestCgi::_start() {
 	}
 }
 
-void RequestCgi::_checkState() {
-	if (_request->_state == Request::FINISH || _cgiHandler == NULL) {
+void RequestCgi::checkState() {
+	if (_request->_state == Request::FINISH || !_cgiHandler) {
 		return;
 	}
 	try {
@@ -69,8 +69,8 @@ void RequestCgi::_checkState() {
 	}
 }
 
-void RequestCgi::_kill() {
-	if (_cgiHandler == NULL) {
+void RequestCgi::killCgiProcess() {
+	if (!_cgiHandler) {
 		return;
 	}
 	kill(_cgiHandler->_pid, SIGTERM); // OR SIGKILL

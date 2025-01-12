@@ -1,924 +1,728 @@
 #include "Request.hpp"
-#include "Webserv.hpp"
+#include "main.hpp"
 
-std::string	Request::getParseStateStr(e_parse_state state)
-{
-	switch (state)
-	{
-		case INIT:
-			return "INIT";
-		case REQUEST_LINE_METHOD:
-			return "REQUEST_LINE_METHOD";
-		case REQUEST_LINE_URI:
-			return "REQUEST_LINE_URI";
-		case REQUEST_LINE_HTTP_VERSION:
-			return "REQUEST_LINE_HTTP_VERSION";
-		case REQUEST_LINE_END:
-			return "REQUEST_LINE_END";
-		case HEADERS_INIT:
-			return "HEADERS_INIT";
-		case HEADERS_PARSE_KEY:
-			return "HEADERS_PARSE_KEY";
-		case HEADERS_PARSE_VALUE:
-			return "HEADERS_PARSE_VALUE";
-		case HEADERS_PARSE_END:
-			return "HEADERS_PARSE_END";
-		case HEADERS_END:
-			return "HEADERS_END";
-		case BODY_INIT:
-			return "BODY_INIT";
-		case BODY_PROCESS:
-			return "BODY_PROCESS";
-		case BODY_END:
-			return "BODY_END";
-		case CGI_INIT:
-			return "CGI_INIT";
-		case CGI_PROCESS:
-			return "CGI_PROCESS";
-		case CGI_END:
-			return "CGI_END";
-		case FINISH:
-			return "FINISH";
-		default:
-			return "UNKNOWN";
+std::string	Request::getParseStateString(parsingState state) {
+	switch (state) {
+		case BODY_END: return "BODY_END";
+		case BODY_INIT: return "BODY_INIT";
+		case BODY_PROCESS: return "BODY_PROCESS";
+		case CGI_END: return "CGI_END";
+		case CGI_INIT: return "CGI_INIT";
+		case CGI_PROCESS: return "CGI_PROCESS";
+		case FINISH: return "FINISH";
+		case HEADERS_END: return "HEADERS_END";
+		case HEADERS_INIT: return "HEADERS_INIT";
+		case HEADERS_PARSE_END: return "HEADERS_PARSE_END";
+		case HEADERS_PARSE_KEY: return "HEADERS_PARSE_KEY";
+		case HEADERS_PARSE_VALUE: return "HEADERS_PARSE_VALUE";
+		case INIT: return "INIT";
+		case REQUEST_LINE_END: return "REQUEST_LINE_END";
+		case REQUEST_LINE_HTTP_VERSION: return "REQUEST_LINE_HTTP_VERSION";
+		case REQUEST_LINE_METHOD: return "REQUEST_LINE_METHOD";
+		case REQUEST_LINE_URI: return "REQUEST_LINE_URI";
+		default: return "UNKNOWN";
 	}
 }
 
-Request::Request(Client *client) : _client(client), _server(NULL), _location(NULL),  _rawRequest(""), _method(""), _uri(""), _path(""), _httpVersion(""), _isChunked(false), _cgi(this), _contentLength(0),  _chunkSize(-1), _timeout(0), _state(Request::INIT), _stateCode(REQUEST_DEFAULT_STATE_CODE)
-{
-	this->_initServer();
+Request::Request(Client *client) : _client(client), _serverBlock(NULL), _locationBlock(NULL),  _rawRequest(""), _httpMethod(""), _uri(""), _path(""), _httpVersion(""), _isChunked(false), _cgi(this), _contentLength(0),  _chunkSize(-1), _timeout(0), _state(Request::INIT), _stateCode(REQUEST_DEFAULT_STATE_CODE) {
+	initServer();
 }
 
-Request::Request(const Request &src)
-{
-	*this = src;
-}
+Request::Request(Request const &obj) { *this = obj; }
 
-Request::~Request(void)
-{
-}
+Request::~Request() {}
 
-Request &Request::operator=(const Request &rhs)
-{
-	if (this != &rhs)
-	{
-		this->_client = rhs._client;
-		this->_server = rhs._server;
-		this->_location = rhs._location;
-		this->_rawRequest = rhs._rawRequest;
-		this->_method = rhs._method;
-		this->_uri = rhs._uri;
-		this->_path = rhs._path;
-		this->_query = rhs._query;
-		this->_httpVersion = rhs._httpVersion;
-		this->_body = rhs._body;
-		this->_headers = rhs._headers;
-		// this->_envCGI = rhs._envCGI;
-		this->_isChunked = rhs._isChunked;
-		this->_contentLength = rhs._contentLength;
-		this->_chunkSize = rhs._chunkSize;
-		// this->_cgi = rhs._cgi;
-		this->_state = rhs._state;
-		this->_stateCode = rhs._stateCode;
+Request &Request::operator=(Request const &obj) {
+	if (this != &obj) 	{
+		_body = obj._body;
+		_chunkSize = obj._chunkSize;
+		_client = obj._client;
+		_contentLength = obj._contentLength;
+		_headers = obj._headers;
+		_httpVersion = obj._httpVersion;
+		_isChunked = obj._isChunked;
+		_locationBlock = obj._locationBlock;
+		_httpMethod = obj._httpMethod;
+		_path = obj._path;
+		_query = obj._query;
+		_rawRequest = obj._rawRequest;
+		_serverBlock = obj._serverBlock;
+		_state = obj._state;
+		_stateCode = obj._stateCode;
+		_uri = obj._uri;
 	}
 	return *this;
 }
 
-/*
-** --------------------------------- METHODS ----------------------------------
-*/
 
-/*
-** @brief Parse the raw request
-*/
-void	Request::parse(const std::string &rawRequest)
-{
-	if (this->_state == Request::FINISH)
-		return ;
-	if (this->_state == Request::INIT){
-		Logger::log(Logger::TRACE, "%.*s", 25, rawRequest.substr(0, rawRequest.find("\n")).c_str());
-		this->_initTimeout();
+void Request::parse(std::string const &rawRequest) {
+	if (_state == Request::FINISH) {
+		return;
 	}
-	
-
-	if (rawRequest.empty())
-	{
+	if (_state == Request::INIT) {
+		Logger::log(Logger::TRACE, "%.*s", 80, rawRequest.substr(0, rawRequest.find("\n")).c_str());
+		initTimeout();
+	}
+	if (rawRequest.empty()) {
 		Logger::log(Logger::WARNING, "Empty request");
-		return ;
+		return;
 	}
-	this->_rawRequest += rawRequest;
-
-	Logger::log(Logger::DEBUG, "Parsing request: %s", this->_rawRequest.c_str());
-
-	this->_parseRequestLine();
-	this->_parseHeaders();
-	this->_parseBody();
+	_rawRequest += rawRequest;
+	Logger::log(Logger::DEBUG, "Parsing request: %s", _rawRequest.c_str());
+	parseRequestLine();
+	parseHeaders();
+	parseBody();
 }
 
-/*
-** @brief Parse the request line
-**
-** @param iss : The input stream
-** @param step : The current step
-*/
-void	Request::_parseRequestLine(void)
-{
-	if (this->_state > Request::REQUEST_LINE_END)
-		return (Logger::log(Logger::DEBUG, "Request line already parsed"));
-	if (this->_state == Request::INIT)
-		this->setState(Request::REQUEST_LINE_METHOD);
-
-	if (this->_state == Request::REQUEST_LINE_METHOD)
-		this->_parseMethod();
-	if (this->_state == Request::REQUEST_LINE_URI)
-		this->_parseUri();
-	if (this->_state == Request::REQUEST_LINE_HTTP_VERSION)
-		this->_parseHttpVersion();
-	if (this->_state == Request::REQUEST_LINE_END)
-	{
-		this->_rawRequest.erase(0, this->_rawRequest.find_first_not_of(" \t"));
-		if (this->_rawRequest.empty())
-			return ;
-		if (this->_rawRequest[0] == '\n')
-		{
-			this->_rawRequest.erase(0, 1);
-			return (this->setState(Request::HEADERS_INIT));
+void Request::parseRequestLine() {
+	if (_state > Request::REQUEST_LINE_END) {
+		return Logger::log(Logger::DEBUG, "Request line already parsed");
+	}
+	if (_state == Request::INIT) {
+		setState(Request::REQUEST_LINE_METHOD);
+	}
+	if (_state == Request::REQUEST_LINE_METHOD) {
+		parseMethod();
+	}
+	if (_state == Request::REQUEST_LINE_URI) {
+		parseUri();
+	}
+	if (_state == Request::REQUEST_LINE_HTTP_VERSION) {
+		parseHttpVersion();
+	}
+	if (_state == Request::REQUEST_LINE_END) {
+		_rawRequest.erase(0, _rawRequest.find_first_not_of(" \t"));
+		if (_rawRequest.empty()) {
+			return;
 		}
-		if (this->_rawRequest[0] == '\r')
-		{
-			if (this->_rawRequest.size() < 2)
-				return ;
-			if (this->_rawRequest[1] == '\n')
-			{
-				this->_rawRequest.erase(0, 2);
-				return (this->setState(Request::HEADERS_INIT));
+		if (_rawRequest[0] == '\n') {
+			_rawRequest.erase(0, 1);
+			return setState(Request::HEADERS_INIT);
+		}
+		if (_rawRequest[0] == '\r') {
+			if (_rawRequest.size() < 2) {
+				return;
 			}
-			return (this->setError(400));
+			if (_rawRequest[1] == '\n') {
+				_rawRequest.erase(0, 2);
+				return setState(Request::HEADERS_INIT);
+			}
+			return setError(400);
 		}
-		return (this->setError(400));
+		return setError(400);
 	}	
 }
 
-/*
-** @brief Parse the method
-**
-*/
-void	Request::_parseMethod(void)
-{
-	size_t	i = 0;
-	size_t	rawSize = this->_rawRequest.size();
-	bool	found = false;
-	while (i < rawSize)
-	{
-		if (this->_rawRequest[i] == ' ')
-		{
+void Request::parseMethod() {
+	size_t i = -1;
+	size_t rawSize = _rawRequest.size();
+	bool found = false;
+	while (++i < rawSize) {
+		if (_rawRequest[i] == ' ') {
 			found = true;
 			break;
 		}
-		if (!std::isalpha(this->_rawRequest[i]))
-			return (this->setError(400));
-		this->_method += this->_rawRequest[i];
-		i++;
+		if (!std::isalpha(_rawRequest[i])) {
+			return setError(400);
+		}
+		_httpMethod += _rawRequest[i];
 	}
-	this->_rawRequest.erase(0, found ? i + 1 : i);
-	if (found)
-	{
-		if (this->_method.empty())
-			return (this->setError(400));
-		if (ConfigParser::isMethodSupported(this->_method) == false)
-			return (this->setError(405));
-		Logger::log(Logger::DEBUG, "Method: %s", this->_method.c_str());
-		this->setState(Request::REQUEST_LINE_URI);
+	_rawRequest.erase(0, found ? i + 1 : i);
+	if (found) {
+		if (_httpMethod.empty()) {
+			return setError(400);
+		}
+		if (!ConfigParser::isMethodSupported(_httpMethod)) {
+			return setError(405);
+		}
+		Logger::log(Logger::DEBUG, "Method: %s", _httpMethod.c_str());
+		setState(Request::REQUEST_LINE_URI);
 	}
 }
 
-/*
-** @brief Parse the URI
-**
-*/
-void	Request::_parseUri(void)
-{
-	size_t	i = 0;
-	size_t	rawSize = this->_rawRequest.size();
-	bool	found = false;
-	while (i < rawSize)
-	{
-		if (this->_uri.empty() && (this->_rawRequest[i] == ' ' || this->_rawRequest[i] == '\t'))
-		{
-			i++;
+void Request::parseUri() {
+	size_t i = -1;
+	size_t rawSize = _rawRequest.size();
+	bool found = false;
+	while (++i < rawSize) {
+		if (_uri.empty() && (_rawRequest[i] == ' ' || _rawRequest[i] == '\t')) {
 			continue;
 		}
-		if (this->_rawRequest[i] == ' ')
-		{
+		if (_rawRequest[i] == ' ') {
 			found = true;
 			break;
 		}
-		if (!std::isprint(this->_rawRequest[i]))
-			return (this->setError(400));
-		this->_uri += this->_rawRequest[i];
-		i++;
+		if (!std::isprint(_rawRequest[i])) {
+			return setError(400);
+		}
+		_uri += _rawRequest[i];
 	}
-	this->_rawRequest.erase(0, found ? i + 1 : i);
-	if (found)
-	{
-		if (this->_uri.empty())
-			return (this->setError(400));
-		// this->_uri.erase(std::remove_if(this->_uri.begin(), this->_uri.end(), ::isspace), this->_uri.end());
-		if (this->_processUri() == -1)
-			return ;
-		Logger::log(Logger::DEBUG, "URI: %s", this->_uri.c_str());
-		return (this->setState(Request::REQUEST_LINE_HTTP_VERSION));
+	_rawRequest.erase(0, found ? i + 1 : i);
+	if (found) {
+		if (_uri.empty()) {
+			return setError(400);
+		}
+		if (processUri() == FAIL) {
+			return;
+		}
+		Logger::log(Logger::DEBUG, "URI: %s", _uri.c_str());
+		return setState(Request::REQUEST_LINE_HTTP_VERSION);
 	}
 }
 
-/*
-** @brief Parse the HTTP version
-**
-*/
-void	Request::_parseHttpVersion(void)
-{
-	size_t	i = 0;
-	size_t	rawSize = this->_rawRequest.size();
-	bool	found = false;
-	while (i < rawSize)
-	{
-		if (this->_httpVersion.empty() && (this->_rawRequest[i] == ' ' || this->_rawRequest[i] == '\t'))
-		{
-			i++;
+void Request::parseHttpVersion() {
+	size_t i = -1;
+	size_t rawSize = _rawRequest.size();
+	bool found = false;
+	while (++i < rawSize) {
+		if (_httpVersion.empty() && (_rawRequest[i] == ' ' || _rawRequest[i] == '\t')) {
 			continue;
 		}
-		if (this->_rawRequest[i] != 'H' && this->_rawRequest[i] != 'T' && this->_rawRequest[i] != 'P' && this->_rawRequest[i] != '/' && this->_rawRequest[i] != '.' && !std::isdigit(this->_rawRequest[i]))
-		{
+		if (_rawRequest[i] != 'H' && _rawRequest[i] != 'T' && _rawRequest[i] != 'P' && _rawRequest[i] != '/' && _rawRequest[i] != '.' && !std::isdigit(_rawRequest[i])) {
 			found = true;
 			break;
 		}
-		this->_httpVersion += this->_rawRequest[i];
-		i++;
+		_httpVersion += _rawRequest[i];
 	}
-	this->_rawRequest.erase(0, i);
-	if (found)
-	{
-		if (this->_httpVersion.empty())
-			return (this->setError(400));
-		// this->_httpVersion.erase(std::remove_if(this->_httpVersion.begin(), this->_httpVersion.end(), ::isspace), this->_httpVersion.end());
-		if (ConfigParser::isHttpVersionSupported(this->_httpVersion) == false)
-			return (this->setError(505));
-		this->setState(Request::REQUEST_LINE_END);
+	_rawRequest.erase(0, i);
+	if (found) {
+		if (_httpVersion.empty()) {
+			return setError(400);
+		}
+		if (!ConfigParser::isHttpVersionSupported(_httpVersion)) {
+			return setError(505);
+		}
+		setState(Request::REQUEST_LINE_END);
 	}
 }
 
-
-/*
-** @brief Parse the headers
-**
-*/
-void	Request::_parseHeaders(void)
-{
-	if (this->_state < Request::HEADERS_INIT)
-		return (Logger::log(Logger::DEBUG, "Request line not parsed yet"));
-	if (this->_state > Request::HEADERS_END)
-		return (Logger::log(Logger::DEBUG, "Headers already parsed"));
-
-	if (this->_state == Request::HEADERS_INIT)
-		this->setState(Request::HEADERS_PARSE_KEY);
-	
-	if (this->_state == Request::HEADERS_PARSE_KEY)
-		this->_parseHeadersKey();
-	if (this->_state == Request::HEADERS_PARSE_VALUE)
-		this->_parseHeadersValue();
-	if (this->_state == Request::HEADERS_PARSE_END)
-	{
-		this->_rawRequest.erase(0, this->_rawRequest.find_first_not_of(" \t"));
-		if (this->_rawRequest.empty())
-			return ;
-		if (this->_rawRequest[0] == '\n')
-		{
-			this->_rawRequest.erase(0, 1);
-			this->setState(Request::HEADERS_PARSE_KEY);
-			return (this->_parseHeaders());
+void Request::parseHeaders() {
+	if (_state < Request::HEADERS_INIT) {
+		return Logger::log(Logger::DEBUG, "Request line not parsed yet");
+	}
+	if (_state > Request::HEADERS_END) {
+		return Logger::log(Logger::DEBUG, "Headers already parsed");
+	}
+	if (_state == Request::HEADERS_INIT) {
+		setState(Request::HEADERS_PARSE_KEY);
+	}
+	if (_state == Request::HEADERS_PARSE_KEY) {
+		parseHeadersKey();
+	}
+	if (_state == Request::HEADERS_PARSE_VALUE) {
+		parseHeadersValue();
+	}
+	if (_state == Request::HEADERS_PARSE_END) {
+		_rawRequest.erase(0, _rawRequest.find_first_not_of(" \t"));
+		if (_rawRequest.empty()) {
+			return;
 		}
-		if (this->_rawRequest[0] == '\r')
-		{
-			if (this->_rawRequest.size() < 2)
-				return ;
-			if (this->_rawRequest[1] == '\n')
-			{
-				this->_rawRequest.erase(0, 2);
-				this->setState(Request::HEADERS_PARSE_KEY);
-				return (this->_parseHeaders());
+		if (_rawRequest[0] == '\n') {
+			_rawRequest.erase(0, 1);
+			setState(Request::HEADERS_PARSE_KEY);
+			return parseHeaders();
+		}
+		if (_rawRequest[0] == '\r') {
+			if (_rawRequest.size() < 2) {
+				return;
 			}
-			return (this->setError(400));
+			if (_rawRequest[1] == '\n') {
+				_rawRequest.erase(0, 2);
+				setState(Request::HEADERS_PARSE_KEY);
+				return parseHeaders();
+			}
+			return setError(400);
 		}
-		return (this->setError(400));
+		return setError(400);
 	}
 }
 
-/*
-** @brief Parse the headers key
-**
-*/
-void	Request::_parseHeadersKey(void)
-{
-	// detect end of headers
-	if (!this->_rawRequest.empty() && (this->_rawRequest[0] == '\r' || this->_rawRequest[0] == '\n'))
-	{
-		if (this->_rawRequest[0] == '\n')
-		{
-			this->_rawRequest.erase(0, 1);
-			if (!this->_tmpHeaderKey.empty())
-				return (this->setError(400));
-			return (this->setState(Request::BODY_INIT));
+void Request::parseHeadersKey() {
+	if (!_rawRequest.empty() && (_rawRequest[0] == '\r' || _rawRequest[0] == '\n')) {
+		if (_rawRequest[0] == '\n') {
+			_rawRequest.erase(0, 1);
+			if (!_tmpHeaderKey.empty()) {
+				return setError(400);
+			}
+			return setState(Request::BODY_INIT);
 		}
-		if (this->_rawRequest.size() < 2)
-			return ;
-		if (this->_rawRequest[1] == '\n')
-		{
-			this->_rawRequest.erase(0, 2);
-			if (!this->_tmpHeaderKey.empty())
-				return (this->setError(400));
-			return (this->setState(Request::BODY_INIT));
+		if (_rawRequest.size() < 2) {
+			return;
 		}
-		return (this->setError(400));
+		if (_rawRequest[1] == '\n') {
+			_rawRequest.erase(0, 2);
+			if (!_tmpHeaderKey.empty()) {
+				return setError(400);
+			}
+			return setState(Request::BODY_INIT);
+		}
+		return setError(400);
 	}
-	size_t	i = 0;
-	size_t	rawSize = this->_rawRequest.size();
-	bool	found = false;
-	while (i < rawSize)
-	{
-		if (this->_rawRequest[i] == ' ' || this->_rawRequest[i] == '\t')
-			return (this->setError(400));
-		if (this->_rawRequest[i] == ':')
-		{
+	size_t i = -1;
+	size_t rawSize = _rawRequest.size();
+	bool found = false;
+	while (++i < rawSize) {
+		if (_rawRequest[i] == ' ' || _rawRequest[i] == '\t') {
+			return setError(400);
+		}
+		if (_rawRequest[i] == ':') {
 			found = true;
 			break;
 		}
-		// if (!std::isprint(this->_rawRequest[i]))
-		// 	return (this->setError(400));
-		if (!std::isalnum(this->_rawRequest[i]) && this->_rawRequest[i] != '-' && this->_rawRequest[i] != '_')
-			return (this->setError(400));
-		this->_tmpHeaderKey += this->_rawRequest[i];
-		i++;
+		if (!std::isalnum(_rawRequest[i]) && _rawRequest[i] != '-' && _rawRequest[i] != '_') {
+			return setError(400);
+		}
+		_tmpHeaderKey += _rawRequest[i];
 	}
-	this->_rawRequest.erase(0, found ? i + 1 : i);
-	if (found)
-	{
-		if (this->_tmpHeaderKey.empty())
-			return (this->setError(400));
-		this->_tmpHeaderKey.erase(std::remove_if(this->_tmpHeaderKey.begin(), this->_tmpHeaderKey.end(), ::isspace), this->_tmpHeaderKey.end());
-		Logger::log(Logger::DEBUG, "Header key: %s", this->_tmpHeaderKey.c_str());
-		this->setState(Request::HEADERS_PARSE_VALUE);
+	_rawRequest.erase(0, found ? i + 1 : i);
+	if (found) {
+		if (_tmpHeaderKey.empty()) {
+			return setError(400);
+		}
+		_tmpHeaderKey.erase(std::remove_if(_tmpHeaderKey.begin(), _tmpHeaderKey.end(), ::isspace), _tmpHeaderKey.end());
+		Logger::log(Logger::DEBUG, "Header key: %s", _tmpHeaderKey.c_str());
+		setState(Request::HEADERS_PARSE_VALUE);
 	}
-
 }
 
-/*
-** @brief Parse the headers value
-**
-*/
-void	Request::_parseHeadersValue(void)
-{
-	size_t	i = 0;
-	size_t	rawSize = this->_rawRequest.size();
-	bool	found = false;
-	while (i < rawSize)
-	{
-		// skip space and tab
-		if (this->_tmpHeaderValue.empty() && (this->_rawRequest[i] == ' ' || this->_rawRequest[i] == '\t'))
-		{
-			i++;
+void Request::parseHeadersValue() {
+	size_t i = -1;
+	size_t rawSize = _rawRequest.size();
+	bool found = false;
+	while (++i < rawSize) {
+		if (_tmpHeaderValue.empty() && (_rawRequest[i] == ' ' || _rawRequest[i] == '\t')) {
 			continue;
 		}
-		if (!std::isprint(this->_rawRequest[i]))
-		{
+		if (!std::isprint(_rawRequest[i])) {
 			found = true;
 			break;
 		}
-		this->_tmpHeaderValue += this->_rawRequest[i];
-		i++;
+		_tmpHeaderValue += _rawRequest[i];
 	}
-	this->_rawRequest.erase(0, i);
-	if (found)
-	{
-		if (this->_tmpHeaderValue.empty())
-			return (this->setError(400));
-		// this->_tmpHeaderValue.erase(std::remove_if(this->_tmpHeaderValue.begin(), this->_tmpHeaderValue.end(), ::isspace), this->_tmpHeaderValue.end());
-		if (this->_headers.find(this->_tmpHeaderKey) != this->_headers.end())
-			return (this->setError(400));
-		Logger::log(Logger::DEBUG, "Header value: %s", this->_tmpHeaderValue.c_str());
-		this->_headers[this->_tmpHeaderKey] = this->_tmpHeaderValue;
-		this->_tmpHeaderKey.clear();
-		this->_tmpHeaderValue.clear();
-		this->setState(Request::HEADERS_PARSE_END);
+	_rawRequest.erase(0, i);
+	if (found) {
+		if (_tmpHeaderValue.empty()) {
+			return setError(400);
+		}
+		if (_headers.find(_tmpHeaderKey) != _headers.end()) {
+			return setError(400);
+		}
+		Logger::log(Logger::DEBUG, "Header value: %s", _tmpHeaderValue.c_str());
+		_headers[_tmpHeaderKey] = _tmpHeaderValue;
+		_tmpHeaderKey.clear();
+		_tmpHeaderValue.clear();
+		setState(Request::HEADERS_PARSE_END);
 	}
 }
 
 
-void	Request::_parseBody(void)
-{
-	if (this->_state < Request::BODY_INIT)
-		return (Logger::log(Logger::DEBUG, "Headers not parsed yet"));
-	if (this->_state > Request::BODY_INIT)
-		return (Logger::log(Logger::DEBUG, "Body already parsed"));
-
-	if (this->isChunked())
-		return (this->_parseChunkedBody());
-
-	if (this->_body.writeData(this->_rawRequest) == -1)
-		return (this->setError(500));
-	this->_rawRequest.clear();
-	if (this->_body._size > this->_server->getClientMaxBodySize()) // Check the client max body size
-		return (this->setError(413));
-	if (this->_body._size == this->_contentLength)
-		return (this->setState(Request::BODY_END));
+void Request::parseBody() {
+	if (_state < Request::BODY_INIT) {
+		return Logger::log(Logger::DEBUG, "Headers not parsed yet");
+	}
+	if (_state > Request::BODY_INIT) {
+		return Logger::log(Logger::DEBUG, "Body already parsed");
+	}
+	if (isChunked()) {
+		return parseChunkedBody();
+	}
+	if (_body.writeData(_rawRequest) == FAIL) {
+		return setError(500);
+	}
+	_rawRequest.clear();
+	if (_body._size > _serverBlock->getClientMaxBodySize()) {
+		return setError(413);
+	}
+	if (_body._size == _contentLength) {
+		return setState(Request::BODY_END);
+	}
 }
 
-/*
-** @brief Parse the chunked body
-*/
-void Request::_parseChunkedBody(void)
-{
-	while (!this->_rawRequest.empty())
-	{
-		if (this->_chunkSize == -1)
-		{
-			size_t pos = this->_rawRequest.find("\r\n");
-			if (pos == std::string::npos)
-				return ; // Waiting for more data
-			std::string line = this->_rawRequest.substr(0, pos);
+void Request::parseChunkedBody() {
+	while (!_rawRequest.empty()) {
+		if (_chunkSize == -1) {
+			size_t pos = _rawRequest.find("\r\n");
+			if (pos == std::string::npos) {
+				return;
+			}
+			std::string line = _rawRequest.substr(0, pos);
 			std::istringstream iss(line);
-			if (!(iss >> std::hex >> this->_chunkSize))
-			{
-				this->setError(400);
-				return (Logger::log(Logger::ERROR, "[_parseChunkedBody] Error parsing chunk size"));
+			if (!(iss >> std::hex >> _chunkSize)) {
+				setError(400);
+				return Logger::log(Logger::ERROR, "[parseChunkedBody] Error parsing chunk size");
 			}
-			this->_rawRequest.erase(0, pos + 2);
-			if (this->_chunkSize == 0)
-				return (this->setState(Request::BODY_END));
-			Logger::log(Logger::DEBUG, "[_parseChunkedBody] Chunk size: %d", this->_chunkSize);
+			_rawRequest.erase(0, pos + 2);
+			if (_chunkSize == 0) {
+				return setState(Request::BODY_END);
+			}
+			Logger::log(Logger::DEBUG, "[parseChunkedBody] Chunk size: %d", _chunkSize);
 		}
-		size_t pos = this->_rawRequest.find("\r\n");
-		if (pos == std::string::npos)
-			return ; // Waiting for more data
-		if (pos != (size_t)this->_chunkSize)
-		{
-			this->setError(400);
-			return (Logger::log(Logger::ERROR, "[_parseChunkedBody] Chunk size does not match"));
+		size_t pos = _rawRequest.find("\r\n");
+		if (pos == std::string::npos) {
+			return;
 		}
-		if (this->_body.writeData(this->_rawRequest.substr(0, this->_chunkSize)) == -1)
-			return (this->setError(500));
-		this->_rawRequest.erase(0, this->_chunkSize + 2);
-		this->_chunkSize = -1;
-		if (this->_body._size > (u_int64_t)this->_server->getClientMaxBodySize()) // Check the client max body size
-			return (this->setError(413));
+		if (pos != (size_t)_chunkSize) {
+			setError(400);
+			return Logger::log(Logger::ERROR, "[parseChunkedBody] Chunk size does not match");
+		}
+		if (_body.writeData(_rawRequest.substr(0, _chunkSize)) == -1) {
+			return setError(500);
+		}
+		_rawRequest.erase(0, _chunkSize + 2);
+		_chunkSize = -1;
+		if (_body._size > (u_int64_t)_serverBlock->getClientMaxBodySize()) {
+			return setError(413);
+		}
 	}
 }
 
-/*
-** @brief Set the state
-**
-** @param state : The state
-*/
-void	Request::setState(e_parse_state state)	
-{
-	if (this->_state == Request::FINISH)
-		return (Logger::log(Logger::DEBUG, "[setState] Request already finished"));
-	if (this->_state == state)
-		return (Logger::log(Logger::DEBUG, "[setState] Request already in this state"));
-
-	Logger::log(Logger::DEBUG, "[setState] Request state changed from %s to %s with state code: %d", this->getParseStateStr(this->_state).c_str(), this->getParseStateStr(state).c_str(), this->_stateCode);
-	this->_state = state;
-
-	if (this->_state == Request::BODY_INIT)
-	{
-		this->_setHeaderState(); // Set the header state
-		if (this->_state == Request::FINISH)
-			return ;
-		if (this->_method != "POST" && this->_method != "PUT")
-			return(this->_cgi._isCGI ? this->setState(Request::CGI_INIT) : this->setState(Request::FINISH));
-		this->setTimeout(REQUEST_DEFAULT_BODY_TIMEOUT);
-		this->_defineBodyDestination();
+void Request::setState(parsingState state) {
+	if (_state == Request::FINISH) {
+		return Logger::log(Logger::DEBUG, "[setState] Request already finished");
 	}
-	else if (this->_state == Request::BODY_END)
-	{
-		if (this->_cgi._isCGI)
-			this->setState(Request::CGI_INIT);
-		else
-			this->setState(Request::FINISH);
+	if (_state == state) {
+		return Logger::log(Logger::DEBUG, "[setState] Request already in this state");
 	}
-	else if (this->_state == Request::CGI_INIT)
-	{
-		Utils::socketEpollModify(g_server->getEpollFD(), this->_client->getFd(), RESPONSE_FLAGS);
-		this->setTimeout(REQUEST_DEFAULT_CGI_TIMEOUT);
-		this->_cgi._start();
-	}
-	else if (this->_state == Request::FINISH)
-	{
-		this->_timeout = 0;
-		Utils::socketEpollModify(g_server->getEpollFD(), this->_client->getFd(), RESPONSE_FLAGS);
+	Logger::log(Logger::DEBUG, "[setState] Request state changed from %s to %s with state code: %d", getParseStateString(_state).c_str(), getParseStateString(state).c_str(), _stateCode);
+	_state = state;
+	if (_state == Request::BODY_INIT) {
+		setHeaderState();
+		if (_state == Request::FINISH) {
+			return;
+		}
+		if (_httpMethod != "POST" && _httpMethod != "PUT") {
+			return(_cgi._isCGI ? setState(Request::CGI_INIT) : setState(Request::FINISH));
+		}
+		setTimeout(REQUEST_DEFAULT_BODY_TIMEOUT);
+		defineBodyDestination();
+	} else if (_state == Request::BODY_END) {
+		if (_cgi._isCGI) {
+			setState(Request::CGI_INIT);
+		} else {
+			setState(Request::FINISH);
+		}
+	} else if (_state == Request::CGI_INIT) {
+		Utils::socketEpollModify(g_server->getEpollFD(), _client->getFd(), RESPONSE_FLAGS);
+		setTimeout(REQUEST_DEFAULT_CGI_TIMEOUT);
+		_cgi.start();
+	} else if (_state == Request::FINISH) {
+		_timeout = 0;
+		Utils::socketEpollModify(g_server->getEpollFD(), _client->getFd(), RESPONSE_FLAGS);
 	}
 }
 
-/*
-** @brief Set the header state
-*/
-void	Request::_setHeaderState(void)
-{
-	if (this->_findServer() == -1 || this->_findLocation() == -1)
-		return ;
-	if (this->_checkMethod() == -1 || this->_checkTransferEncoding() == -1 || this->_checkClientMaxBodySize() == -1 || this->_checkCgi() == -1) // || this->_checkCGI() == -1)
-		return ;
+void Request::setHeaderState() {
+	if (findServer() == FAIL 
+		|| findLocation() == FAIL 
+		|| checkHttpMethod() == FAIL 
+		|| checkTransferEncoding() == FAIL 
+		|| checkClientMaxBodySize() == FAIL 
+		|| checkCgi() == FAIL) {
+		return;
+	}
 }
 
-/*
-** @brief Set the error code
-**
-** @param code : The error code
-*/
-void	Request::setError(int code)
-{
-	this->_stateCode = code;
-	this->setState(Request::FINISH);
+void Request::setError(int code) {
+	_stateCode = code;
+	setState(Request::FINISH);
 }
 
-/*
-** --------------------------------- PROCESS -----------------------------------
-*/
-
-/*
-** @brief Process the URI
-*/
-int	Request::_processUri(void)
-{
-	if (Utils::urlDecode(this->_uri) == -1)
-		return (this->setError(400), -1);
-	size_t pos = this->_uri.find('?');
-	if (pos != std::string::npos)
-	{
-		this->_path = this->_uri.substr(0, pos);
-		this->_query = this->_uri.substr(pos + 1);
+int Request::processUri() {
+	if (Utils::urlDecode(_uri) == FAIL) {
+		return (setError(400), FAIL);
 	}
-	else
-		this->_path = this->_uri;
-	return (0);
+	size_t pos = _uri.find('?');
+	if (pos != std::string::npos) {
+		_path = _uri.substr(0, pos);
+		_query = _uri.substr(pos + 1);
+	} else {
+		_path = _uri;
+	}
+	return OK;
 }
 
-/*
-** --------------------------------- FINDERS ----------------------------------
-*/
-
-/*
-** @brief Find the server
-*/
-int	Request::_findServer(void)
-{
-	if (this->_client == NULL)
-	{
-		Logger::log(Logger::ERROR, "[_findServer] Client is NULL");
-		this->setError(500);
-		return (-1);
+int	Request::findServer() {
+	if (!_client) {
+		Logger::log(Logger::ERROR, "[findServer] Client is NULL");
+		setError(500);
+		return FAIL;
 	}
-	std::string host = this->_headers["Host"]; // Find the host in the headers
-	if (host.empty()) // If the host is empty, set the error code to 400
-	{
-		Logger::log(Logger::ERROR, "[_findServer] Host not found in headers");
-		this->setError(400);
-		return (-1);
+	std::string host = _headers["Host"];
+	if (host.empty()) {
+		Logger::log(Logger::ERROR, "[findServer] Host not found in headers");
+		setError(400);
+		return FAIL;
 	}
-	
-	Logger::log(Logger::DEBUG, "[_findServer] Host: %s", host.c_str());
-	
-	Socket* socket = this->_client->getSocket();
-	if (socket == NULL)
-	{
-		Logger::log(Logger::ERROR, "[_findServer] Socket is NULL");
-		this->setError(500);
-		return (-1);
+	Logger::log(Logger::DEBUG, "[findServer] Host: %s", host.c_str());
+	Socket *socket = _client->getSocket();
+	if (!socket) {
+		Logger::log(Logger::ERROR, "[findServer] Socket is NULL");
+		setError(500);
+		return FAIL;
 	}
-
-	// BlocServer* serverFound = NULL;
-	std::vector<BlocServer>* servers = socket->getServers();
-	for (std::vector<BlocServer>::iterator it = servers->begin(); it != servers->end(); ++it)
-	{
+	std::vector<BlockConfigServer>* servers = socket->getServers();
+	for (std::vector<BlockConfigServer>::iterator it = servers->begin(); it != servers->end(); it++) {
 		std::vector<std::string> serverNames = it->getServerNames();
-		for (std::vector<std::string>::iterator it2 = serverNames.begin(); it2 != serverNames.end(); ++it2)
-		{
-			if (*it2 == host.substr(0, host.find(":")))
-			{
-				// serverFound = &(*it);
-				this->_server = &(*it);
+		for (std::vector<std::string>::iterator it2 = serverNames.begin(); it2 != serverNames.end(); it2++) {
+			if (*it2 == host.substr(0, host.find(":"))) {
+				_serverBlock = &(*it);
 				break ;
 			}
 		}
 	}
-	return (1);
+	return 1;
 }
 
-/*
-** @brief Find the location
-*/
-int	Request::_findLocation(void)
-{
-	if (this->_server == NULL)
-	{
-		Logger::log(Logger::ERROR, "[_findLocation] Server is NULL");
-		this->setError(500);
-		return (-1);
+int	Request::findLocation() {
+	if (!_serverBlock) {
+		Logger::log(Logger::ERROR, "[findLocation] Server is NULL");
+		setError(500);
+		return FAIL;
 	}
-	
-	BlocLocation* locationFound = NULL;
-	std::vector<BlocLocation>* locations = this->_server->getLocations();
-
+	BlockConfigLocation *locationBlock = NULL;
+	std::vector<BlockConfigLocation>* locations = _serverBlock->getLocations();
 	int lastClosestMatch = -1;
-	for (std::vector<BlocLocation>::iterator it = locations->begin(); it != locations->end(); ++it)
-	{
+	for (std::vector<BlockConfigLocation>::iterator it = locations->begin(); it != locations->end(); ++it) {
 		std::string	path = it->getPath();
-		if (this->_checkPathsMatch(this->_path, path))
-		{
-			if ((int)path.size() > lastClosestMatch)
-			{
+		if (checkPathsMatch(_path, path)) {
+			if ((int)path.size() > lastClosestMatch) {
 				lastClosestMatch = path.size();
-				locationFound = &(*it);
+				locationBlock = &(*it);
 			}
 		}
 	}
-	this->_location = locationFound;
-	return (0);
+	_locationBlock = locationBlock;
+	return OK;
 }
 
-/*
-** --------------------------------- CHECKERS ---------------------------------
-*/
-
-/*
-** @brief Check the transfer encoding
-**
-** @return 0 if the check is successful, -1 otherwise
-*/
-int	Request::_checkTransferEncoding(void)
-{
-	if (this->_headers.find("Transfer-Encoding") != this->_headers.end())
-	{
-		if (this->_headers["Transfer-Encoding"] == "chunked")
-			this->_isChunked = true;
-		else if (this->_headers["Transfer-Encoding"] != "identity")
-		{
-			Logger::log(Logger::ERROR, "[_checkTransferEncoding] Transfer-Encoding not supported: %s", this->_headers["Transfer-Encoding"].c_str());
-			this->setError(501);
-			return (-1);
+int Request::checkTransferEncoding() {
+	if (_headers.find("Transfer-Encoding") != _headers.end()) {
+		if (_headers["Transfer-Encoding"] == "chunked") {
+			_isChunked = true;
+		} else if (_headers["Transfer-Encoding"] != "identity")	{
+			Logger::log(Logger::ERROR, "[checkTransferEncoding] Transfer-Encoding not supported: %s", _headers["Transfer-Encoding"].c_str());
+			setError(501);
+			return FAIL;
 		}
 	}
-	return (0);
+	return OK;
 }
 
-/*
-** @brief Check the client max body size
-**
-** @return 0 if the check is successful, -1 otherwise
-*/
-int	Request::_checkClientMaxBodySize(void)
-{
-	if (this->_headers.find("Content-Length") != this->_headers.end())
-	{
-		std::istringstream iss(this->_headers["Content-Length"]);
-		iss >> this->_contentLength;
+int Request::checkClientMaxBodySize() {
+	if (_headers.find("Content-Length") != _headers.end()) {
+		std::istringstream iss(_headers["Content-Length"]);
+		iss >> _contentLength;
 	}
-	if (this->_contentLength > this->_server->getClientMaxBodySize())
-	{
-		Logger::log(Logger::ERROR, "[_checkClientMaxBodySize] Content-Length too big, max body size: %d, content length: %d", this->_server->getClientMaxBodySize(), this->_contentLength);
-		this->setError(413);
-		return -1;
+	if (_contentLength > _serverBlock->getClientMaxBodySize()) {
+		Logger::log(Logger::ERROR, "[checkClientMaxBodySize] Content-Length too big, max body size: %d, content length: %d", _serverBlock->getClientMaxBodySize(), _contentLength);
+		setError(413);
+		return FAIL;
 	}
-	return 0;
+	return OK;
 }
 
-/*
-** @brief Check the method
-**
-** @return 0 if the check is successful, -1 otherwise
-*/
-int	Request::_checkMethod(void)
-{
-	if (this->_location == NULL) // if the location is not found, allow all methods
-		return (0);
-	if (this->_location->isMethodAllowed(BlocLocation::converStrToMethod(this->_method)))
-		return (0);
-	Logger::log(Logger::ERROR, "[_checkMethod] Method not allowed: %s", this->_method.c_str());
-	this->setError(405);
-	return (-1);
-}
-
-/*
-** @brief Check if the path is inside another path
-**
-** @param path : The path
-** @param parentPath : The parent path
-**
-** @return 0 if the check is successful, -1 otherwise
-*/
-int	Request::_checkPathsMatch(const std::string &path, const std::string &parentPath)
-{
-	size_t	pathSize = path.size();
-	size_t	parentPathSize = parentPath.size();
-	if (path.compare(0, parentPathSize, parentPath) == 0)
-		if (pathSize== parentPathSize || path[parentPathSize] == '/' || parentPath == "/")
-			return (1);
-	return (0);
-}
-
-/*
-** @brief Check the CGI
-**
-** @return 0 if the check is successful, -1 otherwise
-*/
-int	Request::_checkCgi(void)
-{
-	if (this->_location == NULL)
-		return (0);
-	std::vector<std::string> allPathsLocations = this->_getAllPathsLocation();
-	for (size_t i = 0; i < allPathsLocations.size(); i++){
-		for (std::map<std::string, std::string>::const_iterator it = this->_location->getCGI().begin(); it != this->_location->getCGI().end(); ++it)
-			if (Utils::getExtension(allPathsLocations[i]) == it->first)
-				if (Utils::fileExists(allPathsLocations[i]))
-					return (this->setCgi(true, allPathsLocations[i], it->second), 0);
+int	Request::checkHttpMethod() {
+	if (!_locationBlock || _locationBlock->isMethodAllowed(BlockConfigLocation::converStrToMethod(_httpMethod))) {
+		return OK;
 	}
-	return (0);
+	Logger::log(Logger::ERROR, "[checkHttpMethod] Method not allowed: %s", _httpMethod.c_str());
+	setError(405);
+	return FAIL;
 }
 
-/*
-** ---------------------------------- BODY -------------------------------------
-*/
+int	Request::checkPathsMatch(std::string const &path, std::string const &parentPath) {
+	size_t pathSize = path.size();
+	size_t parentPathSize = parentPath.size();
+	if (path.compare(0, parentPathSize, parentPath) == 0) {
+		if (pathSize== parentPathSize || path[parentPathSize] == '/' || parentPath == "/") {
+			return FAIL;
+		}
+	}
+	return OK;
+}
 
-/*
-** @brief Define the body destination
-*/
-void	Request::_defineBodyDestination(void)
-{
-	if (!this->_cgi._isCGI && (this->_method == "POST" || this->_method == "PUT"))
-	{
-
-		if (this->_headers.find("Content-Type") != this->_headers.end() && this->_headers["Content-Type"] == "multipart/form-data")
-			return (this->setError(415));
-		bool isPathDir = this->_path.size() > 1 && this->_path[this->_path.size() - 1] == '/';
-		{
-			this->_body._path = (this->_location && !this->_location->getRoot().empty()) ? this->_location->getRoot() : this->_server->getRoot();
-			if (!isPathDir)
-			{
-				this->_body._path += this->_path;
-				if (this->_method == "POST" && Utils::fileExists(this->_body._path))
-					this->setError(403);
-				this->_body._fd = open(this->_body._path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
-				if (this->_body._fd == -1)
-					this->setError(403);
-			}
-			else
-			{
-				this->_body._path += this->_path;
-				if (this->_headers.find("Filename") != this->_headers.end())
-				{
-					this->_body._path += "/" + this->_headers["Filename"];
-					if (this->_method == "POST" && Utils::fileExists(this->_body._path))
-						this->setError(403);
-					this->_body._fd = open(this->_body._path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
-					if (this->_body._fd == -1)
-						this->setError(403);
-				}
-				else
-				{
-					this->_body._path += "/upload_";
-					if (Utils::createFileRandomSuffix(this->_body._path, this->_body._fd) == -1)
-						this->setError(403);
+int Request::checkCgi() {
+	if (!_locationBlock) {
+		return OK;
+	}
+	std::vector<std::string> allPathsLocations = getAllPathLocations();
+	for (size_t i = 0; i < allPathsLocations.size(); i++) {
+		for (std::map<std::string, std::string>::const_iterator it = _locationBlock->getCGI().begin(); it != _locationBlock->getCGI().end(); it++) {
+			if (Utils::getExtension(allPathsLocations[i]) == it->first) {
+				if (Utils::fileExists(allPathsLocations[i])) {
+					return (setCgi(true, allPathsLocations[i], it->second), OK);
 				}
 			}
-			this->_body._isTemp = false;
 		}
 	}
-	else
-	{
-		if (Utils::createTempFile(this->_body._path, this->_body._fd) == -1)
-			this->setError(500);
-		this->_body._isTemp = true;
-	}
-
+	return OK;
 }
 
-/*
-** --------------------------------- TIMEOUT -----------------------------------
-*/
-
-/*
-** @brief Init the timeout
-*/
-void	Request::_initTimeout(void)
-{
-	time_t currentTime = time(NULL);
-	this->_timeout = currentTime + REQUEST_DEFAULT_HEADER_TIMEOUT;
-}
-
-/*
-** @brief Check the timeout
-**
-** @param epollfd : The epoll file descriptor
-*/
-void	Request::checkTimeout(void)
-{
-	if (this->_timeout == 0 || this->_state == Request::FINISH)
-		return ;
-	time_t currentTime = time(NULL);
-	if (currentTime > this->_timeout)
-	{
-		Logger::log(Logger::ERROR, "[checkTimeout] Client %d timeout", this->_client->getFd());
-		// if its during cgi kill the process
-		if (this->_state >= Request::CGI_INIT)
-		{
-			this->_cgi._kill();
-			this->setError(504);
+void Request::defineBodyDestination() {
+	if (!_cgi._isCGI && (_httpMethod == "POST" || _httpMethod == "PUT")) {
+		if (_headers.find("Content-Type") != _headers.end() && _headers["Content-Type"] == "multipart/form-data") {
+			return setError(415);
 		}
-		else
-			this->setError(408);
+		bool isPathDir = _path.size() > 1 && _path[_path.size() - 1] == '/';
+		_body._path = (_locationBlock && !_locationBlock->getRoot().empty()) ? _locationBlock->getRoot() : _serverBlock->getRoot();
+		if (!isPathDir) {
+			_body._path += _path;
+			if (_httpMethod == "POST" && Utils::fileExists(_body._path)) {
+				setError(403);
+			}
+			_body._fd = open(_body._path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
+			if (_body._fd == FAIL) {
+				setError(403);
+			}
+		} else {
+			_body._path += _path;
+			if (_headers.find("Filename") != _headers.end()) {
+				_body._path += "/" + _headers["Filename"];
+				if (_httpMethod == "POST" && Utils::fileExists(_body._path)) {
+					setError(403);
+				}
+				_body._fd = open(_body._path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
+				if (_body._fd == FAIL) {
+					setError(403);
+				}
+			} else {
+				_body._path += "/upload_";
+				if (Utils::createFileRandomSuffix(_body._path, _body._fd) == FAIL) {
+					setError(403);
+				}
+			}
+		}
+		_body._isTemp = false;
+	} else {
+		if (Utils::createTempFile(_body._path, _body._fd) == FAIL) {
+			setError(500);
+		}
+		_body._isTemp = true;
 	}
 }
 
-/*
-** --------------------------------- INIT -------------------------------------
-*/
-
-/*
-** @brief Init the server
-*/
-void	Request::_initServer(void)
-{
-	if (this->_client == NULL)
-	{
-		Logger::log(Logger::ERROR, "[_initServer] Client is NULL");
-		this->setError(500);
-		return ;
-	}
-	Socket* socket = this->_client->getSocket();
-	if (socket == NULL)
-	{
-		Logger::log(Logger::ERROR, "[_initServer] Socket is NULL");
-		this->setError(500);
-		return ;
-	}
-	std::vector<BlocServer>* servers = socket->getServers();
-	if (servers->empty())
-	{
-		Logger::log(Logger::ERROR, "[_initServer] No server found");
-		this->setError(500);
-		return ;
-	}
-	this->_server = &servers->front();
+void Request::initTimeout() {
+	time_t currentTime = time(NULL);
+	_timeout = currentTime + REQUEST_DEFAULT_HEADER_TIMEOUT;
 }
 
-/*
-** --------------------------------- TOOLS ---------------------------------
-*/
+void Request::checkTimeout() {
+	if (_timeout == 0 || _state == Request::FINISH) {
+		return;
+	}
+	time_t currentTime = time(NULL);
+	if (currentTime > _timeout) {
+		Logger::log(Logger::ERROR, "[checkTimeout] Client %d timeout", _client->getFd());
+		if (_state >= Request::CGI_INIT) {
+			_cgi.killCgiProcess();
+			setError(504);
+		} else {
+			setError(408);
+		}
+	}
+}
 
-std::vector<std::string> Request::_getAllPathsLocation(void)
-{
-	if (this->_location == NULL)
+void Request::initServer() {
+	if (!_client) {
+		Logger::log(Logger::ERROR, "[initServer] No client found");
+		setError(500);
+		return ;
+	}
+	Socket *socket = _client->getSocket();
+	if (!socket) {
+		Logger::log(Logger::ERROR, "[initServer] No socket found");
+		setError(500);
+		return ;
+	}
+	std::vector<BlockConfigServer>* servers = socket->getServers();
+	if (servers->empty()) {
+		Logger::log(Logger::ERROR, "[initServer] No server found");
+		setError(500);
+		return ;
+	}
+	_serverBlock = &servers->front();
+}
+
+std::vector<std::string> Request::getAllPathLocations() {
+	if (!_locationBlock) {
 		return std::vector<std::string>();
-
+	}
 	std::vector<std::string> allPathsLocations;
-	std::string path = this->_path;
-	std::string root = this->_location->getRoot();
-	std::string alias = this->_location->getAlias();
-	std::vector<std::string> indexes = this->_location->getIndexes();
+	std::string path = _path;
+	std::string root = _locationBlock->getRoot();
+	std::string alias = _locationBlock->getAlias();
+	std::vector<std::string> indexes = _locationBlock->getIndexes();
 	bool isAlias = false;
-
-
-	if (root.empty())
-		root = this->_server->getRoot();
-
-	if (!alias.empty())
-	{
+	if (root.empty()) {
+		root = _serverBlock->getRoot();
+	}
+	if (!alias.empty()) {
 		root = alias;
 		isAlias = true;
 	}
-
-	// cas ou la requete demande un fichier direct
-	if (path[path.size() - 1] != '/'){
-		if (isAlias)
-			path = path.substr(this->_location->getPath().size());
+	if (path[path.size() - 1] != '/') {
+		if (isAlias) {
+			path = path.substr(_locationBlock->getPath().size());
+		}
 		allPathsLocations.push_back(root + path);
 	}
-
-	for (size_t i = 0; i < indexes.size(); i++)
-	{
+	for (size_t i = 0; i < indexes.size(); i++) {
 		std::string index = indexes[i];
-		std::string bkpPath = path;
-		if (path == "/"){
+		std::string tmpPath = path;
+		if (path == "/") {
 			path = root + "/" + index;
-		}
-		else if (isAlias){
+		} else if (isAlias) {
 			path = root + "/" + index;
-		}
-		else{
+		} else {
 			path = root + path + index;
 		}
 		allPathsLocations.push_back(path);
-		path = bkpPath;
+		path = tmpPath;
 	}
-
 	return allPathsLocations;
 }
+
+
+BlockConfigLocation *Request::getLocation() const { return _locationBlock; }
+
+BlockConfigServer *Request::getServer() const { return _serverBlock; }
+
+bool Request::isCgi() const { return _cgi._isCGI; }
+
+bool Request::isChunked() const { return _isChunked; }
+
+Client *Request::getClient() const { return _client; }
+
+int Request::getChunkSize() const { return _chunkSize; }
+
+int Request::getStateCode() const { return _stateCode; }
+
+Request::parsingState Request::getState() const { return _state; }
+
+RequestBody &Request::getBody() { return _body; }
+
+RequestCgi &Request::getCgi() { return _cgi; }
+
+std::map<std::string, std::string> Request::getHeaders() const { return _headers; }
+
+std::string Request::getRawRequest() const { return _rawRequest; }
+
+std::string Request::getHttpVersion() const { return _httpVersion; }
+
+std::string Request::getMethod() const { return _httpMethod; }
+
+std::string Request::getPath() const { return _path; }
+
+std::string Request::getQuery() const { return _query; }
+
+std::string Request::getUri() const { return _uri; }
+
+time_t Request::getTimeout() const { return _timeout; }
+
+unsigned long long Request::getContentLength() const { return _contentLength; }
+
+void Request::setTimeout(int timeout) { _timeout = time(NULL) + timeout; }
+
+void Request::setTimeout(time_t timeout) { _timeout = timeout; }
+
+void Request::setStateCode(int code) { _stateCode = code; }

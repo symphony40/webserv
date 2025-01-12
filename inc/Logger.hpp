@@ -1,18 +1,18 @@
 #ifndef LOGGER_HPP
 #define LOGGER_HPP
 
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+#include <fcntl.h>
+#include <iostream>
 #include <map>
 #include <string>
-#include <iostream>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <ctime>
 #include <vector>
-#include <cstdio>
-#include <cerrno>
-#include <cstring>
-#include <cstdlib>
 
 #define C_BLACK 		"\001\033[30m\002"
 #define C_RED 			"\001\033[31m\002"

@@ -13,7 +13,7 @@ bool Response::isRedirect() {
 	std::string root;
 	bool isLoc;
 
-	isLoc = _request->getLocation() == NULL ? false : true;
+	isLoc = !_request->getLocation() ? false : true;
 	if (isLoc && !_request->getLocation()->getRewrite().second.empty()) {
 		std::pair<int, std::string> rewrite = _request->getLocation()->getRewrite();
 		_response = "HTTP/1.1 " + Utils::intToString(rewrite.first) + " " + Utils::getHttpStatusMessage(rewrite.first) + "\r\n";
@@ -22,17 +22,14 @@ bool Response::isRedirect() {
 		_response += "\r\n";
 		return true;
 	}
-
 	if (isLoc && !_request->getLocation()->getRoot().empty()) {
 		root = _request->getLocation()->getRoot();
 	} else {
 		root = _request->getServer()->getRoot();
 	}
-
 	if (path[path.size() - 1] == '/' || path == "/") {
 		return false;
 	}
-
 	if (Utils::directoryExist((root + path).c_str()) || (isLoc && Utils::directoryExist((_request->getLocation()->getAlias() + path.substr(_request->getLocation()->getPath().size())).c_str()))) {
 		std::string host = _request->getHeaders()["Host"];
 		_response = "HTTP/1.1 301 Moved Permanently\r\n";
@@ -46,7 +43,7 @@ bool Response::isRedirect() {
 	return false;
 }
 
-std::vector<std::string> Response::getAllPathsLocation() {
+std::vector<std::string> Response::getAllPathLocations() {
 	std::vector<std::string> allPaths;
 	std::string path = _request->getPath();
 	std::string root = _request->getLocation()->getRoot();
@@ -54,7 +51,7 @@ std::vector<std::string> Response::getAllPathsLocation() {
 	std::vector<std::string> indexes = _request->getLocation()->getIndexes();
 	bool isAlias = false;
 
-	if (_request->getLocation() == NULL) {
+	if (!_request->getLocation()) {
 		return std::vector<std::string>();
 	}
 	if (root.empty()) {
@@ -109,7 +106,7 @@ std::vector<std::string> Response::getAllPathsServer() {
 	return allPaths;
 }
 
-bool Response::isLargeFile(const std::string &path) {
+bool Response::isLargeFile(std::string const &path) {
 	struct stat fileStat;
 	if (stat(path.c_str(), &fileStat) != 0) 	{
 		Logger::log(Logger::ERROR, "Failed to stat file: %s", path.c_str());
@@ -120,7 +117,6 @@ bool Response::isLargeFile(const std::string &path) {
 
 void Response::handleNotFound(std::string directoryToCheck) {
 	std::string page;
-
 	if (Utils::directoryExist(directoryToCheck.c_str())) {
 		page = ErrorPage::getPage(403, _request->getServer()->getErrorPages());
 	} else {
@@ -140,7 +136,7 @@ std::string Response::findGoodPath(std::vector<std::string> allPaths) {
 	return "";
 }
 
-void Response::setHeaderChunked(const std::string &path) {
+void Response::setHeaderChunked(std::string const &path) {
 	_response = "HTTP/1.1 200 OK\r\n";
 	_response += "Content-Type: " + Utils::getMimeType(path) + "\r\n";
 	_response += "Transfer-Encoding: chunked\r\n";
@@ -152,7 +148,7 @@ void Response::setHeaderChunked(const std::string &path) {
 	}
 }
 
-void Response::prepareChunkedResponse(const std::string &path) {
+void Response::prepareChunkedResponse(std::string const &path) {
 	if (_state != Response::CHUNK || _fileFd == FAIL){
 		setHeaderChunked(path);
 	}
@@ -174,7 +170,7 @@ void Response::prepareChunkedResponse(const std::string &path) {
 	}
 }
 
-void Response::prepareStandardResponse(const std::string &path) {
+void Response::prepareStandardResponse(std::string const &path) {
 	Logger::log(Logger::DEBUG, "[prepareStandardResponse] Opening file %s", path.c_str());
 	std::ifstream file(path.c_str());
 	if (file.is_open()) {
@@ -197,11 +193,11 @@ void Response::handleLocation() {
 	std::string root;
 	_request->getLocation()->getRoot().empty() ? root = _request->getServer()->getRoot()
 											   : root = _request->getLocation()->getRoot();
-	std::vector<std::string> allPathsLocation = getAllPathsLocation();
+	std::vector<std::string> allPathsLocation = getAllPathLocations();
 	std::string path = findGoodPath(allPathsLocation);
 
 	if (path.empty()) {
-		if (_request->getLocation()->getAutoIndex() == TRUE) {
+		if (_request->getLocation()->getAutoIndex() == true) {
 			std::string alias = _request->getLocation()->getAlias();
 			if (!alias.empty()) {
 				std::string shortPath = _request->getPath().substr(_request->getLocation()->getPath().size());
@@ -214,7 +210,6 @@ void Response::handleLocation() {
 		}
 		return handleNotFound(root + _request->getPath());
 	}
-
 	if (isLargeFile(path)){
 		prepareChunkedResponse(path);
 		setState(Response::CHUNK);
@@ -231,7 +226,6 @@ void Response::handleServer() {
 	if (path.empty()) {
 		return handleNotFound(_request->getServer()->getRoot() + _request->getPath());
 	}
-
 	if (isLargeFile(path)) {
 		prepareChunkedResponse(path);
 		setState(Response::CHUNK);
@@ -242,7 +236,7 @@ void Response::handleServer() {
 }
 
 void Response::handleGetRequest() {
-	if (_request->getLocation() != NULL) {
+	if (_request->getLocation()) {
 		handleLocation();
 	} else {
 		handleServer();
@@ -264,7 +258,7 @@ void Response::handlePostRequest() {
 }
 
 void Response::handleDeleteRequest() {
-	std::string path = _request->_location ? _request->_location->getRoot() + _request->getPath() : _request->getServer()->getRoot() + _request->getPath();
+	std::string path = _request->_locationBlock ? _request->_locationBlock->getRoot() + _request->getPath() : _request->getServer()->getRoot() + _request->getPath();
 	if (!Utils::fileExists(path)) {
 		return (setError(404));
 	}
@@ -303,18 +297,16 @@ int Response::generateResponse(int epollFD) {
 		_response.clear();
 	}
 	if (_request->getStateCode() != REQUEST_DEFAULT_STATE_CODE) {
-
 		return (setError(_request->getStateCode()), OK);
 	}
 	if (isRedirect()) {
 		return (setState(Response::FINISH), OK);
 	}
 	if (_request->isCgi()) {
-		Logger::log(Logger::DEBUG, "ITS A CGI");
+		Logger::log(Logger::DEBUG, "IT'S A CGI");
 		return (handleCgi());
 	}
-	Logger::log(Logger::DEBUG, "ITS NOT A CGI");
-
+	Logger::log(Logger::DEBUG, "IT'S NOT A CGI");
 	if (_state != Response::CHUNK) {
 		setState(Response::PROCESS);
 	} 

@@ -1,16 +1,16 @@
 #ifndef CLIENT_HPP
-# define CLIENT_HPP
+#define CLIENT_HPP
 
-# include <sys/socket.h>
-# include <netinet/in.h>
-# include <ctime>
+#include <ctime>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
-# include "Utils.hpp"
-# include "Request.hpp"
-# include "Socket.hpp"
-# include "Response.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
+#include "Socket.hpp"
+#include "Utils.hpp"
 
-# define CLIENT_READ_BUFFER_SIZE 8192  // 4096
+#define CLIENT_READ_BUFFER_SIZE 8192  // 4096
 
 class Request;
 class Response;
@@ -22,7 +22,7 @@ private:
 	Socket *_socket;
 	Request *_request;
 	Response *_response;
-	time_t _lastActivity;
+	time_t _lastActivityAt;
 
 public:
 	Client(int fd, Socket* socket);
@@ -35,7 +35,7 @@ public:
 	Request *getRequest() const;
 	Socket *getSocket() const;
 	Response *getResponse() const;
-	time_t getLastActivity() const;
+	time_t getTimeOfLastActivity() const;
 	void updateLastActivity();
 	void checkCgi();
 

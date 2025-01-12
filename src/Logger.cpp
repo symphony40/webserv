@@ -39,12 +39,11 @@ std::map<Logger::LogLevel, std::string> Logger::generateLogLevelColor() {
 
 std::string Logger::format(Logger::LogLevel level, char const *msg, std::string time, bool colored) {
 	std::string formatted;
-
 	if (colored == true) {
 		formatted += Logger::getLogLevelColor(level);
 	}
 	formatted += "[" + Logger::getLogLevelStr(level) + "]\t";
-	formatted += time + " : " + msg;
+	formatted += time + "  " + msg;
 	if ((level == Logger::FATAL) && errno != 0) {
 		formatted += ": " + static_cast<std::string>(std::strerror(errno));
 	}
@@ -75,7 +74,7 @@ void Logger::log(Logger::LogLevel level, const char *msg, ...) {
 	if (Logger::getLogState() == false || (level == Logger::DEBUG && Logger::getLogDebugState() == false)) {
 		return;
 	}
-	const int initialBufferSize = 1024;
+	int const initialBufferSize = 1024;
 	std::vector<char> buffer(initialBufferSize);
 	va_list args;
 	va_start(args, msg);
@@ -93,7 +92,6 @@ void Logger::log(Logger::LogLevel level, const char *msg, ...) {
 	std::time_t t = std::time(NULL);
 	char timeBuffer[80];
 	std::strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %H:%M:%S", std::localtime(&t));
-
 	Logger::printLog(level, buffer.data(), timeBuffer);
 	if (Logger::getLogFileState() == true) {
 		Logger::writeLogInFile(level, buffer.data(), timeBuffer);

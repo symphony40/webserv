@@ -3,8 +3,8 @@
 
 #include <iostream>
 
-#include "Utils.hpp"
 #include "CgiExecutor.hpp"
+#include "Utils.hpp"
 
 #define OK		 0
 #define FAIL	-1
@@ -25,9 +25,9 @@ private:
 	std::string _execPath;
 	CgiExecutor *_cgiHandler;
 
-	void _start();
-	void _checkState();
-	void _kill();
+	void start();
+	void checkState();
+	void killCgiProcess();
 
 public:
 	RequestCgi();
