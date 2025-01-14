@@ -55,9 +55,9 @@ public:
 	int getState() const;
 	int getEpollFD() const;
 	ConfigParser &getConfigParser();
-	std::map<int, Socket*> getSockets() const;
+	std::map<int, Socket *> getSockets() const;
 	Socket *getSocket(int fd);
-	std::map<int, Client*> getClients() const;
+	std::map<int, Client *> getClients() const;
 	Client *getClient(int fd);
 };
 

@@ -72,7 +72,7 @@ void FlagHandler::parse() {
 				}
 			}
 		}
-	} catch (const std::exception &e) {
+	} catch (std::exception const &e) {
 		Utils::printMessage(std::cerr, "%s : %s\n", _argv[0], e.what());
 		// std::cerr << _argv[0] << " : " << e.what() << std::endl << std::endl;
 		_options["--help"] = true;

@@ -13,8 +13,8 @@ def getIdClient():
     cookies = os.environ.get('HTTP_COOKIE', '')
     user_id = None
 
-    for cookie in cookies.Utils::split(';'):
-        parts = cookie.strip().Utils::split('=', 1)
+    for cookie in cookies.split(';'):
+        parts = cookie.strip().split('=', 1)
         if len(parts) == 2:
             name, value = parts
             if name == "id":

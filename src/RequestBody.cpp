@@ -8,7 +8,7 @@ RequestBody::RequestBody(RequestBody const &obj) { *this = obj; }
 
 RequestBody::~RequestBody() {
 	if (_fd != FAIL) {
-		Utils::protectedCall(close(_fd), "failed to close file", false);
+		Utils::tryCall(close(_fd), "failed to close file", false);
 	}
 	if (_path.size() && _isTemp) {
 		remove(_path.c_str());

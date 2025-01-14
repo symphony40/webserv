@@ -36,7 +36,7 @@ public:
 	Socket *getSocket() const;
 	Response *getResponse() const;
 	time_t getTimeOfLastActivity() const;
-	void updateLastActivity();
+	void updateTimeOfLastActivity();
 	void checkCgi();
 
 	class DisconnectedException : public std::exception	{

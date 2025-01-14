@@ -25,7 +25,7 @@
 
 class Utils {
 public:
-	static bool directoryExist(const char *path);
+	static bool directoryExist(char const *path);
 	static bool fileExists(std::string const &name);
 	static bool isEmptyFile();
 	static bool isPathWithinRoot(std::string const &root, std::string& path) ;
@@ -33,7 +33,7 @@ public:
 	static int createFileRandomSuffix(std::string &path, int &fd);
 	static int createTempFile(std::string &path, int &fd);
 	static int extractPort(std::string addressPort);
-	static int protectedCall(int ret, std::string msg, bool isFatal = true);
+	static int tryCall(int returnValue, std::string message, bool isFatal = true);
 	static int urlDecode(std::string &str);
 	static std::string buildPage(std::vector<std::string> files, std::string path, std::string root);
 	static std::string extractAddress(std::string addressPort);

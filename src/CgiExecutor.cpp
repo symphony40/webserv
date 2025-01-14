@@ -2,7 +2,7 @@
 
 CgiExecutor::CgiExecutor(RequestCgi *requestCgi) : _requestCgi(requestCgi), _envp(NULL), _argv(NULL), _body(true), _pid(FAIL), _tmpStdin(FAIL), _tmpStdout(FAIL) {}
 
-CgiExecutor::CgiExecutor(const CgiExecutor &obj) { *this = obj; }
+CgiExecutor::CgiExecutor(CgiExecutor const &obj) { *this = obj; }
 
 CgiExecutor::~CgiExecutor() {
 	if (_envp) {
@@ -26,7 +26,7 @@ CgiExecutor::~CgiExecutor() {
 	}
 }
 
-CgiExecutor &CgiExecutor::operator=(const CgiExecutor &obj) {
+CgiExecutor &CgiExecutor::operator=(CgiExecutor const &obj) {
 	if (this != &obj) {
 		_requestCgi = obj._requestCgi;
 	}

@@ -1,5 +1,5 @@
-#ifndef LOCATION_HPP
-#define LOCATION_HPP
+#ifndef BLOCKCONFIGROUTE_HPP
+#define BLOCKCONFIGROUTE_HPP
 
 #include <algorithm>
 #include <iomanip>
@@ -19,7 +19,7 @@ enum httpMethods {
 	UNKNOWN
 };
 
-class BlockConfigLocation {
+class BlockConfigRoute {
 private:
 	std::string	_path;
 	std::string _root;
@@ -43,12 +43,12 @@ private:
 	void addCgiExtension(std::vector<std::string> &token);
 
 public:
-	BlockConfigLocation(std::string filename);
-	BlockConfigLocation(BlockConfigLocation const &obj);
-	~BlockConfigLocation();
-	BlockConfigLocation &operator=(BlockConfigLocation const &obj);
+	BlockConfigRoute(std::string filename);
+	BlockConfigRoute(BlockConfigRoute const &obj);
+	~BlockConfigRoute();
+	BlockConfigRoute &operator=(BlockConfigRoute const &obj);
 
-	BlockConfigLocation getLocationConfig(std::ifstream &configFile, std::string &path);
+	BlockConfigRoute getLocationConfig(std::ifstream &configFile, std::string &path);
 	bool getAutoIndex() const;
 	bool isCgi(std::string const &path) const;
 	bool isMethodAllowed(httpMethods method);

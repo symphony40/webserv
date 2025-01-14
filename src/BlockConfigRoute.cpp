@@ -1,18 +1,18 @@
-#include "BlockConfigLocation.hpp"
+#include "BlockConfigRoute.hpp"
 
-BlockConfigLocation::BlockConfigLocation(std::string filename) : _autoindex(false), _filename(filename) {
+BlockConfigRoute::BlockConfigRoute(std::string filename) : _autoindex(false), _filename(filename) {
 	_counters["root"] = 0;
 	_counters["alias"] = 0;
 	_counters["allowedMethods"] = 0;
 	_counters["autoindex"] = 0;
-	_counters["upload_path"] = 0;
+	_counters["uploadPath"] = 0;
 }
 
-BlockConfigLocation::BlockConfigLocation(BlockConfigLocation const &obj) { *this = obj; }
+BlockConfigRoute::BlockConfigRoute(BlockConfigRoute const &obj) { *this = obj; }
 
-BlockConfigLocation::~BlockConfigLocation() {}
+BlockConfigRoute::~BlockConfigRoute() {}
 
-BlockConfigLocation &BlockConfigLocation::operator=(BlockConfigLocation const &obj) {
+BlockConfigRoute &BlockConfigRoute::operator=(BlockConfigRoute const &obj) {
 	if (this != &obj) {
 		_path = obj._path;
 		_root = obj._root;
@@ -29,7 +29,7 @@ BlockConfigLocation &BlockConfigLocation::operator=(BlockConfigLocation const &o
 	return *this;
 }
 
-void BlockConfigLocation::addAllowedMethods(std::vector<std::string> &tokens) {
+void BlockConfigRoute::addAllowedMethods(std::vector<std::string> &tokens) {
 	httpMethods method;
 	incrementCounter("allowedMethods");
 	for (size_t i = 1; i < tokens.size(); i++){
@@ -55,7 +55,7 @@ void BlockConfigLocation::addAllowedMethods(std::vector<std::string> &tokens) {
 	}
 }
 
-bool BlockConfigLocation::strToBool(std::string &str) {
+bool BlockConfigRoute::strToBool(std::string &str) {
 	if (str == "on") {
 		return true;
 	} else if (str == "off") {
@@ -66,7 +66,7 @@ bool BlockConfigLocation::strToBool(std::string &str) {
 	return false;
 }
 
-void BlockConfigLocation::addIndexes(std::vector<std::string> &token) {
+void BlockConfigRoute::addIndexes(std::vector<std::string> &token) {
 	for (size_t i = 1; i < token.size(); i++) {
 		if (std::find(_indexes.begin(), _indexes.end(), token[i]) == _indexes.end()) {
 			_indexes.push_back(token[i]);
@@ -74,14 +74,14 @@ void BlockConfigLocation::addIndexes(std::vector<std::string> &token) {
 	}
 }
 
-void BlockConfigLocation::addCgiExtension(std::vector<std::string> &token) {
+void BlockConfigRoute::addCgiExtension(std::vector<std::string> &token) {
 	if (_cgiExtension.find(token[1]) != _cgiExtension.end()) {
 		Logger::log(Logger::FATAL, "Duplicate cgi extension: \"%s\" in file: %s:%d", token[1].c_str(), _filename.c_str(), ConfigParser::fileLineCount);
 	}
 	_cgiExtension[token[1]] = token[2];
 }
 
-void BlockConfigLocation::setRewrite(std::vector<std::string> &tokens) {
+void BlockConfigRoute::setRewrite(std::vector<std::string> &tokens) {
 	int code = std::atoi(tokens[1].c_str());
 	if (code < 300 || code > 399) {
 		Logger::log(Logger::FATAL, "Invalid return code: \"%s\" in file: %s:%d", tokens[1].c_str(), _filename.c_str(), ConfigParser::fileLineCount);
@@ -89,7 +89,7 @@ void BlockConfigLocation::setRewrite(std::vector<std::string> &tokens) {
 	_rewrite = std::make_pair(code, tokens[2]);
 }
 
-void BlockConfigLocation::cleanPaths() {
+void BlockConfigRoute::cleanPaths() {
 	if (_path != "/" && _path[_path.size() - 1] == '/') {
 		_path.erase(_path.size() - 1);
 	}
@@ -109,19 +109,19 @@ void BlockConfigLocation::cleanPaths() {
 	}
 }
 
-void BlockConfigLocation::checkDoubleLine() {
+void BlockConfigRoute::checkDoubleLine() {
 	std::map<std::string, int>::iterator it;
 	for (it = _counters.begin(); it != _counters.end(); it++) {
 		if (it->second > 1) {
-			Logger::log(Logger::FATAL, "Duplicate line in location context: %s", it->first.c_str());
+			Logger::log(Logger::FATAL, "Duplicate line in route context: %s", it->first.c_str());
 		}
 	}
 	if (_counters["root"] > 0 && _counters["alias"] > 0) {
-		Logger::log(Logger::FATAL, "Alias and Root can't be set in same location bloc %s", _path.c_str());
+		Logger::log(Logger::FATAL, "Alias and Root can't be set in same route bloc %s", _path.c_str());
 	}
 }
 
-void BlockConfigLocation::setDefaultValues() {
+void BlockConfigRoute::setDefaultValues() {
 	if (_allowedHttpMethods.size() == 0) {
 		_allowedHttpMethods.push_back(GET);
 		_allowedHttpMethods.push_back(POST);
@@ -132,7 +132,7 @@ void BlockConfigLocation::setDefaultValues() {
 	}
 }
 
-bool BlockConfigLocation::isValidLineLocation(std::vector<std::string> &tokens, std::string &key) {
+bool BlockConfigRoute::isValidLineLocation(std::vector<std::string> &tokens, std::string &key) {
 	if (tokens.size() < 2) {
 		return false;
 	}
@@ -144,13 +144,13 @@ bool BlockConfigLocation::isValidLineLocation(std::vector<std::string> &tokens, 
 		setRewrite(tokens);
 	} else if (key == "alias" && tokens.size() == 2) {
 		setAlias(tokens[1]);
-	} else if (key == "allow_methods") {
+	} else if (key == "allow") {
 		addAllowedMethods(tokens);
 	} else if (key == "index") {
 		addIndexes(tokens);
-	} else if (key == "cgi_extension" && tokens.size() == 3) {
+	} else if (key == "cgi" && tokens.size() == 3) {
 		addCgiExtension(tokens);
-	} else if (key == "upload_path" && tokens.size() == 2) {
+	} else if (key == "uploadPath" && tokens.size() == 2) {
 		setUploadPath(tokens[1]);
 	} else {
 		return false;
@@ -158,7 +158,7 @@ bool BlockConfigLocation::isValidLineLocation(std::vector<std::string> &tokens, 
 	return true;
 }
 
-BlockConfigLocation BlockConfigLocation::getLocationConfig(std::ifstream &configFile, std::string &path) {
+BlockConfigRoute BlockConfigRoute::getLocationConfig(std::ifstream &configFile, std::string &path) {
 	std::string line;
 	std::vector<std::string> tokens;
 	std::string key;
@@ -191,22 +191,22 @@ BlockConfigLocation BlockConfigLocation::getLocationConfig(std::ifstream &config
 	return *this;
 }
 
-void BlockConfigLocation::printPair(std::string const &label, std::string const &value) {
+void BlockConfigRoute::printPair(std::string const &label, std::string const &value) {
 	std::cout << std::setw(15) << std::left << label << ": " << (value.empty() ? "none" : value) << std::endl;
 }
 
-void BlockConfigLocation::printBool(std::string const &label, bool value, std::string const &trueString, std::string const &falseString) {
+void BlockConfigRoute::printBool(std::string const &label, bool value, std::string const &trueString, std::string const &falseString) {
 	std::cout << std::setw(15) << std::left << label << ": " << (value ? trueString : falseString) << std::endl;
 }
 
-void BlockConfigLocation::printVector(std::string const &label, std::vector<std::string> const &vector) {
+void BlockConfigRoute::printVector(std::string const &label, std::vector<std::string> const &vector) {
 	std::cout << std::setw(15) << std::left << label << ": " << (vector.empty() ? "none" : "") << std::endl;
 	for (std::vector<std::string>::const_iterator it = vector.begin(); it != vector.end(); it++) {
 		std::cout << "\t- " << *it << std::endl;
 	}
 }
 
-void BlockConfigLocation::printMap(std::string const &label, const std::map<std::string, std::string> &map) {
+void BlockConfigRoute::printMap(std::string const &label, const std::map<std::string, std::string> &map) {
 	std::cout << std::setw(15) << std::left << label << ": " << (map.empty() ? "none" : "") << std::endl;
 	for (std::map<std::string, std::string>::const_iterator it = map.begin(); it != map.end(); it++) {
 		std::cout << "\t- " << it->first << ": " << it->second << std::endl;
@@ -214,7 +214,7 @@ void BlockConfigLocation::printMap(std::string const &label, const std::map<std:
 }
 
 
-void BlockConfigLocation::printLocation() {
+void BlockConfigRoute::printLocation() {
 	printPair("Path", _path);
 	printPair("Root", _root);
 	printPair("Alias", _alias);
@@ -246,11 +246,11 @@ void BlockConfigLocation::printLocation() {
 	}
 }
 
-bool BlockConfigLocation::isMethodAllowed(httpMethods method) {
+bool BlockConfigRoute::isMethodAllowed(httpMethods method) {
 	return std::find(_allowedHttpMethods.begin(), _allowedHttpMethods.end(), method) != _allowedHttpMethods.end();
 }
 
-httpMethods	BlockConfigLocation::converStrToMethod(std::string const &method) {
+httpMethods	BlockConfigRoute::converStrToMethod(std::string const &method) {
 	if (method == "GET") {
 		return GET;
 	} else if (method == "POST") {
@@ -265,34 +265,34 @@ httpMethods	BlockConfigLocation::converStrToMethod(std::string const &method) {
 }
 
 
-bool BlockConfigLocation::getAutoIndex() const { return _autoindex; }
+bool BlockConfigRoute::getAutoIndex() const { return _autoindex; }
 
-bool BlockConfigLocation::isCgi(std::string const &path) const { return _cgiExtension.find(path) != _cgiExtension.end(); }
+bool BlockConfigRoute::isCgi(std::string const &path) const { return _cgiExtension.find(path) != _cgiExtension.end(); }
 
-const std::map<std::string, std::string> &BlockConfigLocation::getCGI() const { return _cgiExtension; }
+const std::map<std::string, std::string> &BlockConfigRoute::getCGI() const { return _cgiExtension; }
 
-const std::pair<int, std::string> &BlockConfigLocation::getRewrite() const { return _rewrite; }
+const std::pair<int, std::string> &BlockConfigRoute::getRewrite() const { return _rewrite; }
 
-const std::vector<httpMethods> &BlockConfigLocation::getAllowedMethods() const { return _allowedHttpMethods; }
+const std::vector<httpMethods> &BlockConfigRoute::getAllowedMethods() const { return _allowedHttpMethods; }
 
-const std::vector<std::string> &BlockConfigLocation::getFiles() const { return _indexes; }
+const std::vector<std::string> &BlockConfigRoute::getFiles() const { return _indexes; }
 
-const std::vector<std::string> &BlockConfigLocation::getIndexes() const { return _indexes; }
+const std::vector<std::string> &BlockConfigRoute::getIndexes() const { return _indexes; }
 
-std::string	BlockConfigLocation::getCgiPath(std::string const &path) const { return _cgiExtension.at(path); }
+std::string	BlockConfigRoute::getCgiPath(std::string const &path) const { return _cgiExtension.at(path); }
 
-std::string const &BlockConfigLocation::getAlias() const { return _alias; }
+std::string const &BlockConfigRoute::getAlias() const { return _alias; }
 
-std::string const &BlockConfigLocation::getPath() const { return _path; }
+std::string const &BlockConfigRoute::getPath() const { return _path; }
 
-std::string const &BlockConfigLocation::getRoot() const { return _root; }
+std::string const &BlockConfigRoute::getRoot() const { return _root; }
 
-void BlockConfigLocation::setAlias(std::string const &alias) { _alias = alias;  _counters["alias"]++;}
+void BlockConfigRoute::setAlias(std::string const &alias) { _alias = alias;  _counters["alias"]++;}
 
-void BlockConfigLocation::setAutoIndex(bool autoindex) { _autoindex = autoindex;  _counters["autoindex"]++;}
+void BlockConfigRoute::setAutoIndex(bool autoindex) { _autoindex = autoindex;  _counters["autoindex"]++;}
 
-void BlockConfigLocation::setPath(std::string const &path) { _path = path; }
+void BlockConfigRoute::setPath(std::string const &path) { _path = path; }
 
-void BlockConfigLocation::setRoot(std::string const &root) { _root = root;  _counters["root"]++;}
+void BlockConfigRoute::setRoot(std::string const &root) { _root = root;  _counters["root"]++;}
 
-void BlockConfigLocation::setUploadPath(std::string const &uploadPath) { _uploadPath = uploadPath; _counters["upload_path"]++;}
+void BlockConfigRoute::setUploadPath(std::string const &uploadPath) { _uploadPath = uploadPath; _counters["uploadPath"]++;}

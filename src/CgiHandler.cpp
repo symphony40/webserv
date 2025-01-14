@@ -57,7 +57,7 @@ void CgiHandler::setState(cgiHandlerState state) {
 
 }
 
-void CgiHandler::parse(const std::string &data) {
+void CgiHandler::parse(std::string const &data) {
 	if (_state == CgiHandler::FINISH) {
 		return;
 	}

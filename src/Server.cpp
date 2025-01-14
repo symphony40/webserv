@@ -4,7 +4,7 @@ Server::Server() : _state(SERVER_STATE_INIT), _epollFD(-1) {}
 
 Server::~Server() {
 	if (_epollFD != -1) {
-		Utils::protectedCall(close(_epollFD), "Failed to close epoll instance", false);
+		Utils::tryCall(close(_epollFD), "Failed to close epoll instance", false);
 	}
 	for (std::map<int, Socket *>::iterator it = _sockets.begin(); it != _sockets.end(); it++) {
 		delete it->second;
@@ -20,13 +20,13 @@ void Server::stop() { setState(SERVER_STATE_STOP); }
 
 void Server::init() {
 	Logger::log(Logger::DEBUG, "[Server::init] Create epoll instance...");
-	setEpollFD(Utils::protectedCall(epoll_create1(O_CLOEXEC), "Failed to create epoll instance"));
+	setEpollFD(Utils::tryCall(epoll_create1(O_CLOEXEC), "Failed to create epoll instance"));
 	Logger::log(Logger::DEBUG, "#------------------------------#");
 	Logger::log(Logger::DEBUG, "|  Create listening sockets... |");
 	Logger::log(Logger::DEBUG, "#------------------------------#");
 	std::map<std::string, std::vector<BlockConfigServer> > &servers = _configParser.getServers();
 	for (std::map<std::string, std::vector<BlockConfigServer> >::iterator it = servers.begin(); it != servers.end(); it++) {
-		int socketFD = Utils::protectedCall(socket(AF_INET, SOCK_STREAM, 0), "Error with socket function");
+		int socketFD = Utils::tryCall(socket(AF_INET, SOCK_STREAM, 0), "Error with socket function");
 		_sockets[socketFD] = new Socket(socketFD, Utils::extractAddress(it->first), Utils::extractPort(it->first), &it->second);
 		Utils::socketEpollAdd(_epollFD, socketFD, REQUEST_FLAGS);
 	}
@@ -37,16 +37,16 @@ void Server::handleClientConnection(int fd) {
 	Logger::log(Logger::DEBUG, "[Server::handleClientConnection] New client connected on file descriptor %d", fd);
 	struct sockaddr_in addr;
 	socklen_t addrLen = sizeof(addr);
-	int clientFD = Utils::protectedCall(accept(fd, (struct sockaddr *)&addr, &addrLen), "Error with accept function");
+	int clientFD = Utils::tryCall(accept(fd, (struct sockaddr *)&addr, &addrLen), "Error with accept function");
 	_clients[clientFD] = new Client(clientFD, _sockets[fd]);
-	Utils::protectedCall(fcntl(clientFD, F_SETFL, O_NONBLOCK), "Error with fcntl function");
+	Utils::tryCall(fcntl(clientFD, F_SETFL, O_NONBLOCK), "Error with fcntl function");
 	Utils::socketEpollAdd(_epollFD, clientFD, REQUEST_FLAGS);
 }
 
 void Server::handleClientDisconnection(int fd) {
 	Logger::log(Logger::DEBUG, "[Server::handleClientDisconnection] Client disconnected on file descriptor %d", fd);
 	Utils::socketEpollDelete(_epollFD, fd);
-	std::map<int, Client*>::iterator it = _clients.find(fd);
+	std::map<int, Client *>::iterator it = _clients.find(fd);
 	if (it != _clients.end()) {
 		delete it->second;
 		_clients.erase(it);
@@ -64,12 +64,12 @@ void Server::handleEvent(epoll_event *events, int i) {
 			if (_clients.find(fd) == _clients.end()) {
 				handleClientConnection(fd);
 			} else {
-				_clients[fd]->updateLastActivity();
+				_clients[fd]->updateTimeOfLastActivity();
 				_clients[fd]->handleRequest();
 			}
 		}
 		if (event & EPOLLOUT) {
-			_clients[fd]->updateLastActivity();
+			_clients[fd]->updateTimeOfLastActivity();
 			_clients[fd]->checkCgi();
 			if (_clients[fd]->getRequest() && _clients[fd]->getRequest()->getState() == Request::FINISH)
 				_clients[fd]->handleResponse(_epollFD);
@@ -78,7 +78,7 @@ void Server::handleEvent(epoll_event *events, int i) {
 		throw ChildProcessException();
 	} catch (Client::DisconnectedException &e) {
 		handleClientDisconnection(fd);
-	} catch (const std::exception &e) {
+	} catch (std::exception const &e) {
 		Logger::log(Logger::ERROR, "[Server::handleEvent] Error with client %d : %s", fd, e.what());
 		handleClientDisconnection(fd);
 	}
@@ -108,7 +108,7 @@ void Server::run() {
 	epoll_event	events[MAX_EVENTS];
 	while (getState() == SERVER_STATE_RUN) {
 		static int lastValueCheck = INT8_MIN;
-		int nfds = Utils::protectedCall(epoll_wait(_epollFD, events, MAX_EVENTS, SERVER_DEFAULT_EPOLL_WAIT), "Error with epoll_wait function");
+		int nfds = Utils::tryCall(epoll_wait(_epollFD, events, MAX_EVENTS, SERVER_DEFAULT_EPOLL_WAIT), "Error with epoll_wait function");
 		if (lastValueCheck != nfds) {
 			Logger::log(Logger::DEBUG, "[Server::run] There are %d file descriptors ready for I/O after epoll wait", nfds);
 		}

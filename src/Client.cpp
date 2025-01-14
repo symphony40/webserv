@@ -4,7 +4,7 @@ Client::Client(int fd, Socket *socket) : _fd(fd), _socket(socket), _request(new 
 
 Client::~Client() {
 	if (_fd != -1) {
-		Utils::protectedCall(close(_fd), "[~Client] Failed to close client socket", false);
+		Utils::tryCall(close(_fd), "[~Client] Failed to close client socket", false);
 	}
 	if (_request) {
 		delete _request;
@@ -90,4 +90,4 @@ Response *Client::getResponse() const { return _response; }
 
 time_t Client::getTimeOfLastActivity() const { return _lastActivityAt; }
 
-void Client::updateLastActivity() { _lastActivityAt = time(NULL); }
+void Client::updateTimeOfLastActivity() { _lastActivityAt = time(NULL); }

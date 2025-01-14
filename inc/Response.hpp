@@ -7,7 +7,7 @@
 #include <sys/epoll.h>
 #include <sys/stat.h>
 
-#include "BlockConfigLocation.hpp"
+#include "BlockConfigRoute.hpp"
 #include "BlockConfigServer.hpp"
 #include "CgiHandler.hpp"
 #include "Client.hpp"

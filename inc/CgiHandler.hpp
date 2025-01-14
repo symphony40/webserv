@@ -46,7 +46,7 @@ private:
 	cgiHandlerState _state;
 
 	int checkHeaders();
-	void parse(const std::string &data);
+	void parse(std::string const &data);
 	void parseBody();
 	void parseChunkedBody();
 	void parseHeaders();

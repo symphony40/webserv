@@ -32,10 +32,10 @@ private:
 public:
 	RequestCgi();
 	RequestCgi(Request *request);
-	RequestCgi(const RequestCgi &obj);
+	RequestCgi(RequestCgi const &obj);
 	~RequestCgi();
 
-	RequestCgi &operator=(const RequestCgi &obj);
+	RequestCgi &operator=(RequestCgi const &obj);
 };
 
 #include "Request.hpp"

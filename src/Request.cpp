@@ -479,10 +479,10 @@ int	Request::findLocation() {
 		setError(500);
 		return FAIL;
 	}
-	BlockConfigLocation *locationBlock = NULL;
-	std::vector<BlockConfigLocation>* locations = _serverBlock->getLocations();
+	BlockConfigRoute *locationBlock = NULL;
+	std::vector<BlockConfigRoute>* locations = _serverBlock->getLocations();
 	int lastClosestMatch = -1;
-	for (std::vector<BlockConfigLocation>::iterator it = locations->begin(); it != locations->end(); ++it) {
+	for (std::vector<BlockConfigRoute>::iterator it = locations->begin(); it != locations->end(); ++it) {
 		std::string	path = it->getPath();
 		if (checkPathsMatch(_path, path)) {
 			if ((int)path.size() > lastClosestMatch) {
@@ -522,7 +522,7 @@ int Request::checkClientMaxBodySize() {
 }
 
 int	Request::checkHttpMethod() {
-	if (!_locationBlock || _locationBlock->isMethodAllowed(BlockConfigLocation::converStrToMethod(_httpMethod))) {
+	if (!_locationBlock || _locationBlock->isMethodAllowed(BlockConfigRoute::converStrToMethod(_httpMethod))) {
 		return OK;
 	}
 	Logger::log(Logger::ERROR, "[checkHttpMethod] Method not allowed: %s", _httpMethod.c_str());
@@ -683,7 +683,7 @@ std::vector<std::string> Request::getAllPathLocations() {
 }
 
 
-BlockConfigLocation *Request::getLocation() const { return _locationBlock; }
+BlockConfigRoute *Request::getLocation() const { return _locationBlock; }
 
 BlockConfigServer *Request::getServer() const { return _serverBlock; }
 

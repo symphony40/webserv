@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
 		}
 		server.init();
 		server.run();
-	} catch (const std::exception &e) {
+	} catch (std::exception const &e) {
 		std::cout << e.what() << std::endl;
 		return EXIT_FAILURE;
 	}

@@ -5,7 +5,7 @@ OBJ_D	=	obj
 SRC_D	=	src
 
 INCS	=	\
-			$(INC_D)/BlockConfigLocation.hpp \
+			$(INC_D)/BlockConfigRoute.hpp \
 			$(INC_D)/BlockConfigServer.hpp \
 			$(INC_D)/CgiExecutor.hpp \
 			$(INC_D)/CgiHandler.hpp \
@@ -25,7 +25,7 @@ INCS	=	\
 			$(INC_D)/Utils.hpp \
 
 SRC		=	\
-			$(SRC_D)/BlockConfigLocation.cpp \
+			$(SRC_D)/BlockConfigRoute.cpp \
 			$(SRC_D)/BlockConfigServer.cpp \
 			$(SRC_D)/CgiExecutor.cpp \
 			$(SRC_D)/CgiHandler.cpp \

@@ -1,11 +1,11 @@
 #include "BlockConfigServer.hpp"
 
-BlockConfigServer::BlockConfigServer() : _clientMaxBodySize(CLIENT_MAX_BODY_SIZE), _filename("") {
+BlockConfigServer::BlockConfigServer() : _clientMaxBodySize(BODY_SIZE_MAX), _filename("") {
 	_counters["root"] = 0;
 	_counters["clientMaxBodySize"] = 0;
 }
 
-BlockConfigServer::BlockConfigServer(std::string filename) : _clientMaxBodySize(CLIENT_MAX_BODY_SIZE), _filename(filename) {
+BlockConfigServer::BlockConfigServer(std::string filename) : _clientMaxBodySize(BODY_SIZE_MAX), _filename(filename) {
 	_counters["root"] = 0;
 	_counters["clientMaxBodySize"] = 0;
 }
@@ -21,7 +21,7 @@ BlockConfigServer &BlockConfigServer::operator=(BlockConfigServer const &obj) {
 		_indexes = obj._indexes;
 		_root = obj._root;
 		_clientMaxBodySize = obj._clientMaxBodySize;
-		_locations = obj._locations;
+		_routes = obj._routes;
 		_errorPages = obj._errorPages;
 		_filename = obj._filename;
 		_counters = obj._counters;
@@ -37,7 +37,7 @@ void BlockConfigServer::setClientMaxBodySize(std::string clientMaxBodySize) {
 
 
 bool BlockConfigServer::isStartBlockConfigLocation(std::vector<std::string>& tokens) {
-	return (tokens.size() == 3 && tokens[0] == "location" && tokens[2] == "{");
+	return (tokens.size() == 3 && tokens[0] == "route" && tokens[2] == "{");
 }
 
 void BlockConfigServer::addListener(std::string &token) {
@@ -95,8 +95,8 @@ void BlockConfigServer::cleanPaths() {
 			it->second.erase(it->second.size() - 1);
 		}
 	}
-	std::vector<BlockConfigLocation>::iterator it;
-	for (it = _locations.begin(); it != _locations.end(); it++) {
+	std::vector<BlockConfigRoute>::iterator it;
+	for (it = _routes.begin(); it != _routes.end(); it++) {
 		it->cleanPaths();
 	}
 }
@@ -111,12 +111,12 @@ void BlockConfigServer::checkDoubleLine() {
 }
 
 void BlockConfigServer::checkDoubleLocation() {
-	std::vector<BlockConfigLocation>::iterator it;
-	std::vector<BlockConfigLocation>::iterator it2;
-	for (it = _locations.begin(); it != _locations.end(); ++it) {
-		for (it2 = it + 1; it2 != _locations.end(); ++it2) {
+	std::vector<BlockConfigRoute>::iterator it;
+	std::vector<BlockConfigRoute>::iterator it2;
+	for (it = _routes.begin(); it != _routes.end(); ++it) {
+		for (it2 = it + 1; it2 != _routes.end(); ++it2) {
 			if (it->getPath() == it2->getPath()) {
-				Logger::log(Logger::FATAL, "Duplicate location: \"%s\" in file: %s", it->getPath().c_str(), _filename.c_str());
+				Logger::log(Logger::FATAL, "Duplicate route: \"%s\" in file: %s", it->getPath().c_str(), _filename.c_str());
 			}
 		}
 	}
@@ -140,8 +140,8 @@ bool BlockConfigServer::isValidLineServer(std::vector<std::string>& tokens, std:
 		return false;
 	}
 	if (isStartBlockConfigLocation(tokens)) {
-		BlockConfigLocation location(_filename);
-		addLocation(location.getLocationConfig(configFile, tokens[1]));
+		BlockConfigRoute route(_filename);
+		addLocation(route.getLocationConfig(configFile, tokens[1]));
 	} else if (key == "listen" && tokens.size() == 2) {
 		addListener(tokens[1]);
 	} else if (key == "server_name") {
@@ -150,7 +150,7 @@ bool BlockConfigServer::isValidLineServer(std::vector<std::string>& tokens, std:
 		addIndexes(tokens);
 	} else if (key == "root" && tokens.size() == 2) {
 		setRoot(tokens[1]);
-	} else if (key == "client_max_body_size" && tokens.size() == 2) {
+	} else if (key == "bodySizeMax" && tokens.size() == 2) {
 		setClientMaxBodySize(tokens[1]);
 	} else if (key == "error_page" && tokens.size() == 3) {
 		addErrorPages(std::atoi(tokens[1].c_str()), tokens[2]);
@@ -193,8 +193,8 @@ BlockConfigServer BlockConfigServer::getServerConfig(std::ifstream &configFile) 
 	return *this;
 }
 
-BlockConfigLocation *BlockConfigServer::findLocation(std::string const &uri) {
-	for (std::vector<BlockConfigLocation>::iterator it = _locations.begin(); it != _locations.end(); it++) {
+BlockConfigRoute *BlockConfigServer::findLocation(std::string const &uri) {
+	for (std::vector<BlockConfigRoute>::iterator it = _routes.begin(); it != _routes.end(); it++) {
 		if (uri.find(it->getPath()) == 0) {
 			return &(*it);
 		}
@@ -239,12 +239,12 @@ void BlockConfigServer::printServer() {
 	std::cout << "Client max body size: " << Utils::ullToStr(_clientMaxBodySize) << std::endl;
     printMap("Error pages", _errorPages);
 
-    if (_locations.empty()) {
+    if (_routes.empty()) {
         std::cout << std::setw(25) << std::left << "Locations" << ": none" << std::endl;
     } else {
         int i = 0;
-        for (std::vector<BlockConfigLocation>::iterator it = _locations.begin(); it != _locations.end(); it++) {
-            std::cout << "\n-- LOCATION " << ++i << " --" << std::endl;
+        for (std::vector<BlockConfigRoute>::iterator it = _routes.begin(); it != _routes.end(); it++) {
+            std::cout << "\n-- ROUTE " << ++i << " --" << std::endl;
             it->printLocation();
         }
     }
@@ -257,7 +257,7 @@ const std::map<int, std::string> &BlockConfigServer::getErrorPages() const { ret
 
 const std::vector<std::string> &BlockConfigServer::getServerNames() const { return _serverNames; }
 
-std::vector<BlockConfigLocation> *BlockConfigServer::getLocations() { return &_locations; }
+std::vector<BlockConfigRoute> *BlockConfigServer::getLocations() { return &_routes; }
 
 std::string const &BlockConfigServer::getRoot() const { return _root; }
 
@@ -272,8 +272,8 @@ void BlockConfigServer::setRoot(std::string const &root) {
 	_counters["root"]++;
 }
 
-void BlockConfigServer::setLocations(const std::vector<BlockConfigLocation> &locations) { _locations = locations; }
+void BlockConfigServer::setLocations(std::vector<BlockConfigRoute> const &locations) { _routes = locations; }
 
-void BlockConfigServer::setErrorPages(const std::map<int, std::string> &errorPage) { _errorPages = errorPage; }
+void BlockConfigServer::setErrorPages(std::map<int, std::string> const &errorPage) { _errorPages = errorPage; }
 
-void BlockConfigServer::addLocation(const BlockConfigLocation &locations) { _locations.push_back(locations); }
+void BlockConfigServer::addLocation(BlockConfigRoute const &locations) { _routes.push_back(locations); }

@@ -28,12 +28,12 @@ std::map<Logger::LogLevel, std::string> Logger::generateLogLevelString() {
 
 std::map<Logger::LogLevel, std::string> Logger::generateLogLevelColor() {
 	std::map<Logger::LogLevel, std::string> _logLevelColor;
-	_logLevelColor[Logger::FATAL] = C_RED;
-	_logLevelColor[Logger::ERROR] = C_RED;
-	_logLevelColor[Logger::WARNING] = C_YELLOW;
-	_logLevelColor[Logger::INFO] = C_GREEN;
-	_logLevelColor[Logger::TRACE] = C_MAGENTA;
-	_logLevelColor[Logger::DEBUG] = C_CYAN;
+	_logLevelColor[Logger::FATAL] = RED;
+	_logLevelColor[Logger::ERROR] = RED;
+	_logLevelColor[Logger::WARNING] = YELLOW;
+	_logLevelColor[Logger::INFO] = GREEN;
+	_logLevelColor[Logger::TRACE] = MAGENTA;
+	_logLevelColor[Logger::DEBUG] = CYAN;
 	return _logLevelColor;
 }
 
@@ -48,7 +48,7 @@ std::string Logger::format(Logger::LogLevel level, char const *msg, std::string 
 		formatted += ": " + static_cast<std::string>(std::strerror(errno));
 	}
 	if (colored == true) {
-		formatted += C_RESET;
+		formatted += RESET;
 	}
 	return formatted;
 }

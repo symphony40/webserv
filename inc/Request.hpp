@@ -56,7 +56,7 @@ public:
 	~Request();
 	Request &operator=(Request const &obj);
 
-	BlockConfigLocation *getLocation() const;
+	BlockConfigRoute *getLocation() const;
 	BlockConfigServer *getServer() const;
 	bool isCgi() const;
 	bool isChunked() const;
@@ -87,7 +87,7 @@ public:
 private:
 	Client *_client;
 	BlockConfigServer *_serverBlock;
-	BlockConfigLocation *_locationBlock;
+	BlockConfigRoute *_locationBlock;
 	std::string _rawRequest;
 	std::string _httpMethod;
 	std::string _uri;

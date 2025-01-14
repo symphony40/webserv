@@ -50,11 +50,11 @@ char Utils::hexToChar(char c) {
 }
 
 unsigned long long Utils::strToUll(std::string clientMaxBodySize) {
-	unsigned long long size = CLIENT_MAX_BODY_SIZE;
+	unsigned long long size = BODY_SIZE_MAX;
 	std::stringstream ss(clientMaxBodySize);
 	ss >> size;
 	if (ss.fail() || !ss.eof())	{
-		return CLIENT_MAX_BODY_SIZE;
+		return BODY_SIZE_MAX;
 	}
 	return size;
 }
@@ -84,7 +84,7 @@ void Utils::printMessage(std::ostream &os, const char *msg, ...) {
 	os << buffer.data() << std::endl;
 }
 
-bool Utils::directoryExist(const char *path) {
+bool Utils::directoryExist(char const *path) {
 	struct stat info;
 	if (stat(path, &info) != 0)	{
 		return false;
@@ -141,7 +141,7 @@ std::string Utils::intToString(int num) {
 	return oss.str();
 }
 
-int Utils::protectedCall(int code, std::string message, bool isFatal) {
+int Utils::tryCall(int code, std::string message, bool isFatal) {
 	if (code < 0) {
 		if (isFatal) {
 			if (g_server->getState() != SERVER_STATE_STOP) {
@@ -192,20 +192,20 @@ void Utils::socketEpollAdd(int epollFD, int sockFD, uint32_t flags) {
 	epoll_event ev;
 	ev.events = flags;
 	ev.data.fd = sockFD;
-	Utils::protectedCall(epoll_ctl(epollFD, EPOLL_CTL_ADD, sockFD, &ev), "Error with epoll_ctl function", false);
+	Utils::tryCall(epoll_ctl(epollFD, EPOLL_CTL_ADD, sockFD, &ev), "Error with epoll_ctl function", false);
 }
 
 void Utils::socketEpollModify(int epollFD, int sockFD, uint32_t flags) {
 	epoll_event ev;
 	ev.events = flags;
 	ev.data.fd = sockFD;
-	Utils::protectedCall(epoll_ctl(epollFD, EPOLL_CTL_MOD, sockFD, &ev), "Error with epoll_ctl function", false);
+	Utils::tryCall(epoll_ctl(epollFD, EPOLL_CTL_MOD, sockFD, &ev), "Error with epoll_ctl function", false);
 }
 
 void Utils::socketEpollDelete(int epollFD, int sockFD) {
 	epoll_event ev;
 	ev.data.fd = sockFD;
-	Utils::protectedCall(epoll_ctl(epollFD, EPOLL_CTL_DEL, sockFD, &ev), "Error with epoll_ctl function", false);
+	Utils::tryCall(epoll_ctl(epollFD, EPOLL_CTL_DEL, sockFD, &ev), "Error with epoll_ctl function", false);
 }
 
 std::string Utils::getHttpStatusMessage(int code) {
@@ -243,48 +243,48 @@ std::string Utils::getHttpStatusMessage(int code) {
 }
 
 std::string Utils::getMimeType(std::string const &path) {
-	std::map<std::string, std::string> mimeTypes;
-
-	mimeTypes[".avi"] = "video/x-msvideo";
-	mimeTypes[".css"] = "text/css";
-	mimeTypes[".csv"] = "text/csv";
-	mimeTypes[".eot"] = "application/vnd.ms-fontobject";
-	mimeTypes[".gif"] = "image/gif";
-	mimeTypes[".gz"] = "application/gzip";
-	mimeTypes[".htm"] = "text/html";
-	mimeTypes[".html"] = "text/html";
-	mimeTypes[".ico"] = "image/x-icon";
-	mimeTypes[".ico"] = "image/x-icon";
-	mimeTypes[".jpeg"] = "image/jpeg";
-	mimeTypes[".jpg"] = "image/jpeg";
-	mimeTypes[".js"] = "application/javascript";
-	mimeTypes[".json"] = "application/json";
-	mimeTypes[".mkv"] = "video/x-matroska";
-	mimeTypes[".mp3"] = "audio/mpeg";
-	mimeTypes[".mp4"] = "video/mp4";
-	mimeTypes[".mpeg"] = "video/mpeg";
-	mimeTypes[".ogg"] = "video/ogg";
-	mimeTypes[".otf"] = "font/otf";
-	mimeTypes[".pdf"] = "application/pdf";
-	mimeTypes[".png"] = "image/png";
-	mimeTypes[".svg"] = "image/svg+xml";
-	mimeTypes[".tar"] = "application/x-tar";
-	mimeTypes[".ttf"] = "font/ttf";
-	mimeTypes[".txt"] = "text/plain";
-	mimeTypes[".webm"] = "video/webm";
-	mimeTypes[".webmanifest"] = "application/manifest+json";
-	mimeTypes[".webp"] = "image/webp";
-	mimeTypes[".woff"] = "font/woff";
-	mimeTypes[".woff2"] = "font/woff2";
-	mimeTypes[".xhtml"] = "application/xhtml+xml";
-	mimeTypes[".xml"] = "application/xml";
-	mimeTypes[".zip"] = "application/zip";
-
+	static std::map<std::string, std::string> mimeTypes;
+	if (mimeTypes.empty()) {
+		mimeTypes[".avi"] = "video/x-msvideo";
+		mimeTypes[".css"] = "text/css";
+		mimeTypes[".csv"] = "text/csv";
+		mimeTypes[".eot"] = "application/vnd.ms-fontobject";
+		mimeTypes[".gif"] = "image/gif";
+		mimeTypes[".gz"] = "application/gzip";
+		mimeTypes[".htm"] = "text/html";
+		mimeTypes[".html"] = "text/html";
+		mimeTypes[".ico"] = "image/x-icon";
+		mimeTypes[".ico"] = "image/x-icon";
+		mimeTypes[".jpeg"] = "image/jpeg";
+		mimeTypes[".jpg"] = "image/jpeg";
+		mimeTypes[".js"] = "application/javascript";
+		mimeTypes[".json"] = "application/json";
+		mimeTypes[".mkv"] = "video/x-matroska";
+		mimeTypes[".mp3"] = "audio/mpeg";
+		mimeTypes[".mp4"] = "video/mp4";
+		mimeTypes[".mpeg"] = "video/mpeg";
+		mimeTypes[".ogg"] = "video/ogg";
+		mimeTypes[".otf"] = "font/otf";
+		mimeTypes[".pdf"] = "application/pdf";
+		mimeTypes[".png"] = "image/png";
+		mimeTypes[".svg"] = "image/svg+xml";
+		mimeTypes[".tar"] = "application/x-tar";
+		mimeTypes[".ttf"] = "font/ttf";
+		mimeTypes[".txt"] = "text/plain";
+		mimeTypes[".webm"] = "video/webm";
+		mimeTypes[".webmanifest"] = "application/manifest+json";
+		mimeTypes[".webp"] = "image/webp";
+		mimeTypes[".woff"] = "font/woff";
+		mimeTypes[".woff2"] = "font/woff2";
+		mimeTypes[".xhtml"] = "application/xhtml+xml";
+		mimeTypes[".xml"] = "application/xml";
+		mimeTypes[".zip"] = "application/zip";
+	}
 	std::string::size_type i = path.rfind('.');
 	if (i != std::string::npos) {
-		std::string ext = path.substr(i);
-		if (mimeTypes.find(ext) != mimeTypes.end()) {
-			return mimeTypes[ext];
+		std::string type = path.substr(i);
+		if (mimeTypes.find(type) != mimeTypes.end()) {
+			return mimeTypes[type];
 		}
 	}
 	return "application/octet-stream";
