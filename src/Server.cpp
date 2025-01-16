@@ -26,7 +26,7 @@ void Server::init() {
 	Logger::log(Logger::DEBUG, "#------------------------------#");
 	std::map<std::string, std::vector<BlockConfigServer> > &servers = _configParser.getServers();
 	for (std::map<std::string, std::vector<BlockConfigServer> >::iterator it = servers.begin(); it != servers.end(); it++) {
-		int socketFD = Utils::tryCall(socket(AF_INET, SOCK_STREAM, 0), "Error with socket function");
+		int socketFD = Utils::tryCall(socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0), "Error with socket function");
 		_sockets[socketFD] = new Socket(socketFD, Utils::extractAddress(it->first), Utils::extractPort(it->first), &it->second);
 		Utils::socketEpollAdd(_epollFD, socketFD, REQUEST_FLAGS);
 	}
@@ -39,7 +39,6 @@ void Server::handleClientConnection(int fd) {
 	socklen_t addrLen = sizeof(addr);
 	int clientFD = Utils::tryCall(accept(fd, (struct sockaddr *)&addr, &addrLen), "Error with accept function");
 	_clients[clientFD] = new Client(clientFD, _sockets[fd]);
-	Utils::tryCall(fcntl(clientFD, F_SETFL, O_NONBLOCK), "Error with fcntl function");
 	Utils::socketEpollAdd(_epollFD, clientFD, REQUEST_FLAGS);
 }
 

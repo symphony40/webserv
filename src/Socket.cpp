@@ -8,7 +8,6 @@ Socket::Socket(int fd, std::string ipAddr, unsigned int port, std::vector<BlockC
 		_addr.sin_family = AF_INET;
 		_addr.sin_port = htons(port);
 		_addr.sin_addr.s_addr = inet_addr(ipAddr.c_str());
-		Utils::tryCall(fcntl(_fd, F_SETFL, O_NONBLOCK), "[Socket] Failed to set socket to non-blocking");
 		int optval = 1;
 		Utils::tryCall(setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)), "[Socket] Failed to set socket options");
 		Utils::tryCall(bind(_fd, (struct sockaddr *)&_addr, sizeof(_addr)), "[Socket] Failed to bind socket");
