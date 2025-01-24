@@ -36,7 +36,7 @@ void BlockConfigServer::setClientMaxBodySize(std::string clientMaxBodySize) {
 }
 
 
-bool BlockConfigServer::isStartBlockConfigLocation(std::vector<std::string>& tokens) {
+bool BlockConfigServer::isStartBlockConfigRoute(std::vector<std::string>& tokens) {
 	return (tokens.size() == 3 && tokens[0] == "route" && tokens[2] == "{");
 }
 
@@ -110,7 +110,7 @@ void BlockConfigServer::checkDoubleLine() {
 	}
 }
 
-void BlockConfigServer::checkDoubleLocation() {
+void BlockConfigServer::checkDoubleRoute() {
 	std::vector<BlockConfigRoute>::iterator it;
 	std::vector<BlockConfigRoute>::iterator it2;
 	for (it = _routes.begin(); it != _routes.end(); ++it) {
@@ -128,7 +128,7 @@ void BlockConfigServer::setDefaultValue() {
 		_listeners["0.0.0.0:1234"] = listener;
 	}
 	if (_root.empty()) {
-		_root = "./html";
+		_root = "./w3/pretty";
 	}
 	if (_indexes.empty()) {
 		_indexes.push_back("index.html");
@@ -139,12 +139,12 @@ bool BlockConfigServer::isValidLineServer(std::vector<std::string>& tokens, std:
 	if (tokens.size() < 2) {
 		return false;
 	}
-	if (isStartBlockConfigLocation(tokens)) {
+	if (isStartBlockConfigRoute(tokens)) {
 		BlockConfigRoute route(_filename);
-		addLocation(route.getLocationConfig(configFile, tokens[1]));
+		addRoute(route.getRouteConfig(configFile, tokens[1]));
 	} else if (key == "listen" && tokens.size() == 2) {
 		addListener(tokens[1]);
-	} else if (key == "server_name") {
+	} else if (key == "serverName") {
 		addServerName(tokens);
 	} else if (key == "index") {
 		addIndexes(tokens);
@@ -152,7 +152,7 @@ bool BlockConfigServer::isValidLineServer(std::vector<std::string>& tokens, std:
 		setRoot(tokens[1]);
 	} else if (key == "bodySizeMax" && tokens.size() == 2) {
 		setClientMaxBodySize(tokens[1]);
-	} else if (key == "error_page" && tokens.size() == 3) {
+	} else if (key == "errorPage" && tokens.size() == 3) {
 		addErrorPages(std::atoi(tokens[1].c_str()), tokens[2]);
 	} else {
 		return false;
@@ -188,12 +188,12 @@ BlockConfigServer BlockConfigServer::getServerConfig(std::ifstream &configFile) 
 	}
 	checkDoubleLine();
 	setDefaultValue();
-	checkDoubleLocation();
+	checkDoubleRoute();
 	cleanPaths();
 	return *this;
 }
 
-BlockConfigRoute *BlockConfigServer::findLocation(std::string const &uri) {
+BlockConfigRoute *BlockConfigServer::findRoute(std::string const &uri) {
 	for (std::vector<BlockConfigRoute>::iterator it = _routes.begin(); it != _routes.end(); it++) {
 		if (uri.find(it->getPath()) == 0) {
 			return &(*it);
@@ -240,12 +240,12 @@ void BlockConfigServer::printServer() {
     printMap("Error pages", _errorPages);
 
     if (_routes.empty()) {
-        std::cout << std::setw(25) << std::left << "Locations" << ": none" << std::endl;
+        std::cout << std::setw(25) << std::left << "Routes" << ": none" << std::endl;
     } else {
         int i = 0;
         for (std::vector<BlockConfigRoute>::iterator it = _routes.begin(); it != _routes.end(); it++) {
             std::cout << "\n-- ROUTE " << ++i << " --" << std::endl;
-            it->printLocation();
+            it->printRoute();
         }
     }
 }
@@ -257,7 +257,7 @@ const std::map<int, std::string> &BlockConfigServer::getErrorPages() const { ret
 
 const std::vector<std::string> &BlockConfigServer::getServerNames() const { return _serverNames; }
 
-std::vector<BlockConfigRoute> *BlockConfigServer::getLocations() { return &_routes; }
+std::vector<BlockConfigRoute> *BlockConfigServer::getRoutes() { return &_routes; }
 
 std::string const &BlockConfigServer::getRoot() const { return _root; }
 
@@ -272,8 +272,8 @@ void BlockConfigServer::setRoot(std::string const &root) {
 	_counters["root"]++;
 }
 
-void BlockConfigServer::setLocations(std::vector<BlockConfigRoute> const &locations) { _routes = locations; }
+void BlockConfigServer::setRoutes(std::vector<BlockConfigRoute> const &routes) { _routes = routes; }
 
 void BlockConfigServer::setErrorPages(std::map<int, std::string> const &errorPage) { _errorPages = errorPage; }
 
-void BlockConfigServer::addLocation(BlockConfigRoute const &locations) { _routes.push_back(locations); }
+void BlockConfigServer::addRoute(BlockConfigRoute const &routes) { _routes.push_back(routes); }

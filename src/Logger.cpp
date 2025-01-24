@@ -12,7 +12,7 @@ std::string Logger::generateLogFileName() {
 	std::time_t t = std::time(NULL);
 	char buffer[80];
 	std::strftime(buffer, sizeof(buffer), "webserv_%Y-%m-%d_%H-%M-%S.log", std::localtime(&t));
-	return (std::string(buffer));
+	return std::string(buffer);
 }
 
 std::map<Logger::LogLevel, std::string> Logger::generateLogLevelString() {

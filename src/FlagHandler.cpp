@@ -25,25 +25,25 @@ std::map<std::string, bool> FlagHandler::generateOptions() {
 	options["--log"] = false;
 	options["--quiet"] = false;
 	options["--summary"] = false;
-	return (options);
+	return options;
 }
 
 std::string FlagHandler::convertToLongOption(std::string option) {
-	if (option == "-d")	return ("--debug");
-	if (option == "-h")	return ("--help");
-	if (option == "-l")	return ("--log");
-	if (option == "-q")	return ("--quiet");
-	if (option == "-s")	return ("--summary");
-	return (option);
+	if (option == "-d")	return "--debug";
+	if (option == "-h")	return "--help";
+	if (option == "-l")	return "--log";
+	if (option == "-q")	return "--quiet";
+	if (option == "-s")	return "--summary";
+	return option;
 }
 
 std::string FlagHandler::convertToShortOption(std::string option) {
-	if (option == "--debug") return ("-d");
-	if (option == "--help") return ("-h");
-	if (option == "--log") return ("-l");
-	if (option == "--quiet") return ("-q");
-	if (option == "--summary") return ("-s");
-	return (option);
+	if (option == "--debug") return "-d";
+	if (option == "--help") return "-h";
+	if (option == "--log") return "-l";
+	if (option == "--quiet") return "-q";
+	if (option == "--summary") return "-s";
+	return option;
 }
 
 void FlagHandler::parse() {
@@ -74,9 +74,7 @@ void FlagHandler::parse() {
 		}
 	} catch (std::exception const &e) {
 		Utils::printMessage(std::cerr, "%s : %s\n", _argv[0], e.what());
-		// std::cerr << _argv[0] << " : " << e.what() << std::endl << std::endl;
 		_options["--help"] = true;
-		// _state = EXIT_FAILURE;
 	}
 }
 
@@ -88,9 +86,7 @@ bool FlagHandler::isOption(std::string option) {
 	return false;
 }
 
-// int FlagHandler::getState() const { return (_state); }
-
-std::string FlagHandler::getConfigFilePath() const { return (_configFilePath); }
+std::string FlagHandler::getConfigFilePath() const { return _configFilePath; }
 
 void FlagHandler::help() {
 	std::cout << "Usage: " << _argv[0] << " [options] [config_file]" << std::endl

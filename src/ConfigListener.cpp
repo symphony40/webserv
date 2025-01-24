@@ -8,14 +8,14 @@ ConfigListener::ConfigListener(std::string token) {
 	if (ipAddrPort.size() == 1) {
 		if (ipAddrPort[0].find(".") != std::string::npos) {
 			_address = ipAddrPort[0];
-			_port = 80;
+			_port = 8080;
 		} else {
 			_address = "0.0.0.0";
 			_port = std::atoi(ipAddrPort[0].c_str());
 		}
 	} else if (ipAddrPort.size() == 2) {
 		if (ipAddrPort[0].empty() || ipAddrPort[1].empty()) {
-			Logger::log(Logger::FATAL, "Invalid Ip value: %s", token.c_str());
+			Logger::log(Logger::FATAL, "Invalid Ip Address value: %s", token.c_str());
 		}
 		_address = ipAddrPort[0];
 		_port = std::atoi(ipAddrPort[1].c_str());
@@ -24,7 +24,7 @@ ConfigListener::ConfigListener(std::string token) {
 	}
 	_addressPortCombo = _address + ":" + Utils::uintToString(_port);
 	if (!checkAddressPort()) {
-		Logger::log(Logger::FATAL, "Invalid Ip/Port value: %s", token.c_str());
+		Logger::log(Logger::FATAL, "Invalid IP Address or Port value: %s", token.c_str());
 	}
 }
 

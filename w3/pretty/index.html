@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Web Server Demo</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            margin: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: black;
+            color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('42_background.png') no-repeat center center/cover;
+            filter: blur(10px);
+            z-index: -1;
+        }
+        h1 {
+            text-align: center;
+            color: #32CD32;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        ul li {
+            margin: 10px 0;
+        }
+        ul li a {
+            text-decoration: none;
+            color: #32CD32;
+            font-weight: bold;
+        }
+        ul li a:hover {
+            color: #1e6b26;
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #ffffff;
+        }
+        .footer a {
+            color: #32CD32;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        .project-note {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background-color: rgba(0, 0, 0, 0);
+        color: white;
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        text-align: left;
+        font-size: 0.9em;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .project-note img {
+        max-width: 60px;
+        height: auto;
+        min-width: 40px;
+        min-height: 40px;
+        background-color: transparent;
+    }
+    </style>
+</head>
+<body>
+    <div class="background"></div>
+    <div class="container">
+        <h1>Welcome to Our Great Webserver!</h1>
+        <p>Use the following features to test:</p>
+        <ul>
+            <li><a href="./static/index.html">View a static website</a></li>
+            <li><a href="/upload.html">Upload a file</a></li>
+            <li><a href="/delete">Delete a file</a></li>
+        </ul>
+        <div class="footer">
+            <p>Project done by:</p>
+            <p>
+                <a href="https://github.com/gittwenstein" target="_blank">fmaxian</a> | 
+                <a href="https://github.com/symphony40" target="_blank">vejurick</a>
+            </p>
+            <p><a href="https://github.com/symphony40/webserv" target="_blank">View Source Code</a></p>
+        </div>
+    </div>
+<div class="project-note">
+    <span>Done as a project at</span>
+    <a href="https://www.42prague.com">
+        <img src="logo-prague-white.svg" alt="42 School Logo" style="max-width: 60px; height: auto;">
+    </a>
+</div>
+</body>
+</html>
+

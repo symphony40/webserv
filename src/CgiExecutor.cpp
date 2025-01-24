@@ -48,7 +48,7 @@ void CgiExecutor::init() {
 	_env["SCRIPT_NAME"] = _requestCgi->_path;
 	_env["SCRIPT_FILENAME"] = _requestCgi->_path;
 	_env["PATH_INFO"] = _requestCgi->_path;
-	_env["PATH_TRANSLATED"] = _requestCgi->_path; // Not implemented
+	_env["PATH_TRANSLATED"] = _requestCgi->_path;
 	_env["QUERY_STRING"] = _requestCgi->_request->_query;
 	_env["REQUEST_URI"] = _requestCgi->_request->_uri;
 	_env["REMOTE_ADDR"] = _requestCgi->_request->_client->getSocket()->getIp();

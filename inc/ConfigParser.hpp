@@ -20,7 +20,6 @@ public:
 	ConfigParser();
 	~ConfigParser();
 	std::map<std::string, std::vector<BlockConfigServer> > &getServers();
-	// std::map<std::string, std::vector<BlockConfigServer> > getConfigs() const;
 	
 	void parse(std::string const &filename);
 	void checkDoubleServerName();

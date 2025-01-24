@@ -29,7 +29,7 @@ public:
 	std::string getIp() const;
 	unsigned int getPort() const;
 	int getFd() const;
-	std::vector<BlockConfigServer>* getServers() const;
+	std::vector<BlockConfigServer> *getServers() const;
 	struct sockaddr_in getAddr() const;
 };
 

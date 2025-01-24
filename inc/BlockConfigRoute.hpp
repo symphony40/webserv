@@ -33,7 +33,7 @@ private:
 	std::map<std::string, int> _counters;
 	std::string _filename;
 
-	bool isValidLineLocation(std::vector<std::string> &tokens, std::string& key);
+	bool isValidLineRoute(std::vector<std::string> &tokens, std::string& key);
 	void incrementCounter(std::string const &key) { _counters[key]++; }
 	void checkDoubleLine();
 	void setDefaultValues();
@@ -48,7 +48,7 @@ public:
 	~BlockConfigRoute();
 	BlockConfigRoute &operator=(BlockConfigRoute const &obj);
 
-	BlockConfigRoute getLocationConfig(std::ifstream &configFile, std::string &path);
+	BlockConfigRoute getRouteConfig(std::ifstream &configFile, std::string &path);
 	bool getAutoIndex() const;
 	bool isCgi(std::string const &path) const;
 	bool isMethodAllowed(httpMethods method);
@@ -62,9 +62,10 @@ public:
 	std::string const &getAlias() const;
 	std::string const &getPath() const;
 	std::string const &getRoot() const;
+	std::string const &getUploadPath() const;
 	void cleanPaths();
 	void printBool(std::string const& label, bool value, std::string const& trueString, std::string const& falseString);
-	void printLocation();
+	void printRoute();
 	void printMap(std::string const& label, const std::map<std::string, std::string> &map);
 	void printPair(std::string const& label, std::string const& value);
 	void printVector(std::string const& label, std::vector<std::string> const &vector);

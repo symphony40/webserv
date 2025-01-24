@@ -10,7 +10,7 @@
 #include "Socket.hpp"
 #include "Utils.hpp"
 
-#define CLIENT_READ_BUFFER_SIZE 8192  // 4096
+#define CLIENT_READ_BUFFER_SIZE 8192
 
 class Request;
 class Response;

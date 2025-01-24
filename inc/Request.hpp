@@ -18,7 +18,7 @@
 #define REQUEST_DEFAULT_CGI_TIMEOUT 3
 #define REQUEST_DEFAULT_HEADER_TIMEOUT 10
 #define REQUEST_DEFAULT_STATE_CODE 200
-#define REQUEST_DEFAULT_UPLOAD_PATH "./www/upload/"
+#define REQUEST_DEFAULT_UPLOAD_PATH "./w3/upload/"
 
 class Client;
 class RequestBody;
@@ -56,7 +56,7 @@ public:
 	~Request();
 	Request &operator=(Request const &obj);
 
-	BlockConfigRoute *getLocation() const;
+	BlockConfigRoute *getRoute() const;
 	BlockConfigServer *getServer() const;
 	bool isCgi() const;
 	bool isChunked() const;
@@ -87,7 +87,7 @@ public:
 private:
 	Client *_client;
 	BlockConfigServer *_serverBlock;
-	BlockConfigRoute *_locationBlock;
+	BlockConfigRoute *_routeBlock;
 	std::string _rawRequest;
 	std::string _httpMethod;
 	std::string _uri;
@@ -110,11 +110,11 @@ private:
 	int checkHttpMethod();
 	int checkPathsMatch(std::string const &path, std::string const &parentPath);
 	int checkTransferEncoding();
-	int findLocation();
+	int findRoute();
 	int findServer();
 	int processUri();
 	int checkClientMaxBodySize();
-	std::vector<std::string> getAllPathLocations();
+	std::vector<std::string> getAllPathsInRoute();
 	void defineBodyDestination();
 	void initServer();
 	void initTimeout();

@@ -21,8 +21,6 @@
 #define INACTIVITY_TIMEOUT 60
 #define TIMEOUT_CGI 30 
 
-//#define TIMEOUT_CGI_CHECK_INTERVAL 1 // seconds
-
 enum ServerState {
 	SERVER_STATE_INIT,
 	SERVER_STATE_READY,

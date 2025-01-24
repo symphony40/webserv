@@ -10,8 +10,8 @@ std::vector<std::string> ConfigParser::supportedMethods = ConfigParser::getSuppo
 std::vector<std::string> ConfigParser::supportedHttpVersions = ConfigParser::getSupportedHttpVersions();
 
 bool ConfigParser::isStartBlockConfigServer(std::vector<std::string> tokens) {
-	return ((tokens.size() == 2 && tokens[0] == "server" && tokens[1] == "{")) 
-				|| (tokens.size() == 1 && tokens[0] == "server{");
+	return ((tokens.size() == 2 && tokens[0] == "server" && tokens[1] == "{") 
+		|| (tokens.size() == 1 && tokens[0] == "server{"));
 }
 
 void ConfigParser::checkDoubleServerName() {
@@ -87,7 +87,7 @@ std::vector<std::string> ConfigParser::getSupportedHttpMethods() {
 }
 
 bool ConfigParser::isMethodSupported(std::string method) {
-	return (std::find(ConfigParser::supportedMethods.begin(), ConfigParser::supportedMethods.end(), method) != ConfigParser::supportedMethods.end());
+	return std::find(ConfigParser::supportedMethods.begin(), ConfigParser::supportedMethods.end(), method) != ConfigParser::supportedMethods.end();
 }
 
 std::vector<std::string> ConfigParser::getSupportedHttpVersions() {
@@ -98,9 +98,7 @@ std::vector<std::string> ConfigParser::getSupportedHttpVersions() {
 }
 
 bool ConfigParser::isHttpVersionSupported(std::string version) {
-	return (std::find(ConfigParser::supportedHttpVersions.begin(), ConfigParser::supportedHttpVersions.end(), version) != ConfigParser::supportedHttpVersions.end());
+	return std::find(ConfigParser::supportedHttpVersions.begin(), ConfigParser::supportedHttpVersions.end(), version) != ConfigParser::supportedHttpVersions.end();
 }
 
 std::map<std::string, std::vector<BlockConfigServer> > &ConfigParser::getServers() { return _configs; }
-
-// std::map<std::string, std::vector<BlockConfigServer> > ConfigParser::getConfigs() const { return _configs; }

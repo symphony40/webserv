@@ -43,9 +43,9 @@ int Utils::urlDecode(std::string &url) {
 }
 
 char Utils::hexToChar(char c) {
-	if (c >= '0' && c <= '9') return (c - '0');
-	if (c >= 'A' && c <= 'F') return (c - 'A' + 10);
-	if (c >= 'a' && c <= 'f') return (c - 'a' + 10);
+	if (c >= '0' && c <= '9') return c - '0';
+	if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+	if (c >= 'a' && c <= 'f') return c - 'a' + 10;
 	return OK;
 }
 
@@ -291,17 +291,18 @@ std::string Utils::getMimeType(std::string const &path) {
 }
 
 std::string Utils::buildPage(std::vector<std::string> files, std::string path, std::string root) {
+	std::sort(files.begin(), files.end());
 	std::string page;
-	std::string header = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Listing Directory</title><style>@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');body{padding: 0;margin: 0;box-sizing: border-box;font-family: 'Inter', sans-serif;background-color: #f9f9f9;}.container{--max-width: 1215px;--padding: 1rem;width: min(var(--max-width), 100% - (var(--padding) * 1.2));margin-inline: auto;}a{list-style-type: none;padding: 0;color: black;}.bigLine{width: 100%;height: 1px;background-color: #e0e0e0;margin: 1rem 0;}ul li{list-style-type: '▪️';padding: .2rem 1rem;margin: 0;}a:visited{color: #9e0999;}</style></head>";
-	std::string body = "<body><div class=\"container\"><h1>Index of " + path.substr(root.size()) + "</h1><div class=\"bigLine\"></div><ul>";
+	std::string header = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Directory list</title><link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css\" rel=\"stylesheet\"></head>";
+	std::string body = "<body><div class=\"container\"><div class=\"display-6\">Index of " + path.substr(root.size()) + "</div><br><ul>";
 	for (std::vector<std::string>::iterator it = files.begin(); it != files.end(); ++it) {
-		body += "<li><a href=\"";
+		body += "<li><a class=\"h5 btn btn-light rounded-pill p-0 px-3\" href=\"";
 		body += *it;
 		body += "\">";
 		body += *it;
 		body += "</a></li>";
 	}
-	body += "</ul><div class=\"bigLine\"></div></div></body></html>";
+	body += "</ul></div></body></html>";
 	return header + body;
 }
 

@@ -21,9 +21,7 @@ void Server::stop() { setState(SERVER_STATE_STOP); }
 void Server::init() {
 	Logger::log(Logger::DEBUG, "[Server::init] Create epoll instance...");
 	setEpollFD(Utils::tryCall(epoll_create1(O_CLOEXEC), "Failed to create epoll instance"));
-	Logger::log(Logger::DEBUG, "#------------------------------#");
-	Logger::log(Logger::DEBUG, "|  Create listening sockets... |");
-	Logger::log(Logger::DEBUG, "#------------------------------#");
+	Logger::log(Logger::DEBUG, "[Server::init] Create sockets...");
 	std::map<std::string, std::vector<BlockConfigServer> > &servers = _configParser.getServers();
 	for (std::map<std::string, std::vector<BlockConfigServer> >::iterator it = servers.begin(); it != servers.end(); it++) {
 		int socketFD = Utils::tryCall(socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0), "Error with socket function");

@@ -32,9 +32,9 @@ public:
 
 	int getState() const;
 	std::string getResponse() const;
-	size_t	getResponseSize() const;
-	int generateResponse(int epollFD);
-	std::vector<std::string> getAllPathLocations();
+	size_t getResponseSize() const;
+	int generateResponse();
+	std::vector<std::string> getAllPathsInRoute();
 	CgiHandler &getCgiHandler();
 	void setError(int code, bool generatePage = true);
 
@@ -49,12 +49,12 @@ private:
 	bool isRedirect();
 	int	handleCgi();
 	std::string findGoodPath(std::vector<std::string> allPaths);
-	std::vector<std::string> getAllPathsServer();
+	std::vector<std::string> getAllPathsInServer();
 	void handleDeleteRequest();
 	void handleGetRequest();
 	void handlePostRequest();
 	void handlePutRequest();
-	void handleLocation();
+	void handleRoute();
 	void handleNotFound(std::string directoryToCheck);
 	void handleServer();
 	void prepareChunkedResponse(std::string const &path);

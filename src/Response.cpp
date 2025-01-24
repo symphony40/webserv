@@ -13,24 +13,24 @@ bool Response::isRedirect() {
 	std::string root;
 	bool isLoc;
 
-	isLoc = !_request->getLocation() ? false : true;
-	if (isLoc && !_request->getLocation()->getRewrite().second.empty()) {
-		std::pair<int, std::string> rewrite = _request->getLocation()->getRewrite();
+	isLoc = !_request->getRoute() ? false : true;
+	if (isLoc && !_request->getRoute()->getRewrite().second.empty()) {
+		std::pair<int, std::string> rewrite = _request->getRoute()->getRewrite();
 		_response = "HTTP/1.1 " + Utils::intToString(rewrite.first) + " " + Utils::getHttpStatusMessage(rewrite.first) + "\r\n";
 		_response += "Location:" + rewrite.second + "\r\n";
 		_response += "Content-Length: 0\r\n";
 		_response += "\r\n";
 		return true;
 	}
-	if (isLoc && !_request->getLocation()->getRoot().empty()) {
-		root = _request->getLocation()->getRoot();
+	if (isLoc && !_request->getRoute()->getRoot().empty()) {
+		root = _request->getRoute()->getRoot();
 	} else {
 		root = _request->getServer()->getRoot();
 	}
 	if (path[path.size() - 1] == '/' || path == "/") {
 		return false;
 	}
-	if (Utils::directoryExist((root + path).c_str()) || (isLoc && Utils::directoryExist((_request->getLocation()->getAlias() + path.substr(_request->getLocation()->getPath().size())).c_str()))) {
+	if (Utils::directoryExist((root + path).c_str()) || (isLoc && Utils::directoryExist((_request->getRoute()->getAlias() + path.substr(_request->getRoute()->getPath().size())).c_str()))) {
 		std::string host = _request->getHeaders()["Host"];
 		_response = "HTTP/1.1 301 Moved Permanently\r\n";
 		_response += "Location: http://" + host + path + "/\r\n";
@@ -43,15 +43,15 @@ bool Response::isRedirect() {
 	return false;
 }
 
-std::vector<std::string> Response::getAllPathLocations() {
+std::vector<std::string> Response::getAllPathsInRoute() {
 	std::vector<std::string> allPaths;
 	std::string path = _request->getPath();
-	std::string root = _request->getLocation()->getRoot();
-	std::string alias = _request->getLocation()->getAlias();
-	std::vector<std::string> indexes = _request->getLocation()->getIndexes();
+	std::string root = _request->getRoute()->getRoot();
+	std::string alias = _request->getRoute()->getAlias();
+	std::vector<std::string> indexes = _request->getRoute()->getIndexes();
 	bool isAlias = false;
 
-	if (!_request->getLocation()) {
+	if (!_request->getRoute()) {
 		return std::vector<std::string>();
 	}
 	if (root.empty()) {
@@ -63,7 +63,7 @@ std::vector<std::string> Response::getAllPathLocations() {
 	}
 	if (path[path.size() - 1] != '/') {
 		if (isAlias) {
-			path = path.substr(_request->getLocation()->getPath().size());
+			path = path.substr(_request->getRoute()->getPath().size());
 		}
 		allPaths.push_back(root + path);
 	}
@@ -83,7 +83,7 @@ std::vector<std::string> Response::getAllPathLocations() {
 	return allPaths;
 }
 
-std::vector<std::string> Response::getAllPathsServer() {
+std::vector<std::string> Response::getAllPathsInServer() {
 	std::string path = _request->getPath();
 	std::string root = _request->getServer()->getRoot();
 	std::vector<std::string> indexes = _request->getServer()->getIndexes();
@@ -180,6 +180,9 @@ void Response::prepareStandardResponse(std::string const &path) {
 		_response = "HTTP/1.1 200 OK\r\n";
 		_response += "Content-Type: " + Utils::getMimeType(path) + "\r\n";
 		_response += "Content-Length: " + Utils::intToString(body.size()) + "\r\n";
+		if (_request->_routeBlock) {
+			_response += "Upload-Path: " + _request->_routeBlock->getUploadPath() + "\r\n";
+		}
 		_response += "\r\n";
 		_response += body;
 		file.close();
@@ -189,18 +192,18 @@ void Response::prepareStandardResponse(std::string const &path) {
 	}
 }
 
-void Response::handleLocation() {
+void Response::handleRoute() {
 	std::string root;
-	_request->getLocation()->getRoot().empty() ? root = _request->getServer()->getRoot()
-											   : root = _request->getLocation()->getRoot();
-	std::vector<std::string> allPathsLocation = getAllPathLocations();
-	std::string path = findGoodPath(allPathsLocation);
+	_request->getRoute()->getRoot().empty() ? root = _request->getServer()->getRoot()
+											   : root = _request->getRoute()->getRoot();
+	std::vector<std::string> allPathsInRoute = getAllPathsInRoute();
+	std::string path = findGoodPath(allPathsInRoute);
 
 	if (path.empty()) {
-		if (_request->getLocation()->getAutoIndex() == true) {
-			std::string alias = _request->getLocation()->getAlias();
+		if (_request->getRoute()->getAutoIndex() == true) {
+			std::string alias = _request->getRoute()->getAlias();
 			if (!alias.empty()) {
-				std::string shortPath = _request->getPath().substr(_request->getLocation()->getPath().size());
+				std::string shortPath = _request->getPath().substr(_request->getRoute()->getPath().size());
 				_response = Utils::listDirectory(alias + shortPath, alias);
 			} else {
 				_response = Utils::listDirectory(root + _request->getPath(), root);
@@ -220,7 +223,7 @@ void Response::handleLocation() {
 }
 
 void Response::handleServer() {
-	std::vector<std::string> allPathsServer = getAllPathsServer();
+	std::vector<std::string> allPathsServer = getAllPathsInServer();
 	std::string path = findGoodPath(allPathsServer);
 
 	if (path.empty()) {
@@ -236,8 +239,8 @@ void Response::handleServer() {
 }
 
 void Response::handleGetRequest() {
-	if (_request->getLocation()) {
-		handleLocation();
+	if (_request->getRoute()) {
+		handleRoute();
 	} else {
 		handleServer();
 	}
@@ -245,25 +248,37 @@ void Response::handleGetRequest() {
 
 void Response::handlePostRequest() {
 	std::string json = "{\n";
-	json += "\"message\": \"File uploaded successfully.\",\n";
-	json += "\"filename\": \"" + _request->_body.getPath() + "\",\n";
-	json += "\"size\": " + Utils::ullToStr(_request->_body.getSize()) + "\n";
+	if (_request->_routeBlock->getPath() == "/auth") {
+		json += "\"message\": \"User logged in.\"\n";
+	} else if (_request->_routeBlock->getPath() == "/auth/reset") {
+		json += "\"message\": \"User logged out.\"\n";
+	} else {
+		json += "\"message\": \"File uploaded successfully.\",\n";
+		json += "\"filepath\": \"" + _request->_body.getPath() + "\",\n";
+		json += "\"size\": " + Utils::ullToStr(_request->_body.getSize()) + "\n";
+	}
 	json += "}\n";
 	_response = "HTTP/1.1 200 OK\r\n";
 	_response += "Content-Type: application/json\r\n";
 	_response += "Content-Length: " + Utils::intToString(json.size()) + "\r\n";
+	if (_request->_routeBlock->getPath() == "/auth") {
+		_response += "Set-Cookie: access=granted; Path=/; Max-Age=300\r\n";
+	}
+	if (_request->_routeBlock->getPath() == "/auth/reset") {
+		_response += "Set-Cookie: access=granted; Path=/; Max-Age=0\r\n";
+	}
 	_response += "\r\n";
 	_response += json;
 	setState(Response::FINISH);
 }
 
 void Response::handleDeleteRequest() {
-	std::string path = _request->_locationBlock ? _request->_locationBlock->getRoot() + _request->getPath() : _request->getServer()->getRoot() + _request->getPath();
+	std::string path = _request->_routeBlock ? _request->_routeBlock->getRoot() + _request->getPath() : _request->getServer()->getRoot() + _request->getPath();
 	if (!Utils::fileExists(path)) {
-		return (setError(404));
+		return setError(404);
 	}
 	if (Utils::directoryExist(path.c_str()) || remove(path.c_str()) != 0) {
-		return (setError(403));
+		return setError(403);
 	}
 	std::string json = "{\n";
 	json += "\"message\": \"File deleted successfully.\",\n";
@@ -291,20 +306,19 @@ void Response::handlePutRequest() {
 	setState(Response::FINISH);
 }
 
-int Response::generateResponse(int epollFD) {
-	(void)epollFD;
+int Response::generateResponse() {
 	if (!_response.empty()) {
 		_response.clear();
 	}
 	if (_request->getStateCode() != REQUEST_DEFAULT_STATE_CODE) {
-		return (setError(_request->getStateCode()), OK);
+		return setError(_request->getStateCode()), OK;
 	}
 	if (isRedirect()) {
-		return (setState(Response::FINISH), OK);
+		return setState(Response::FINISH), OK;
 	}
 	if (_request->isCgi()) {
 		Logger::log(Logger::DEBUG, "IT'S A CGI");
-		return (handleCgi());
+		return handleCgi();
 	}
 	Logger::log(Logger::DEBUG, "IT'S NOT A CGI");
 	if (_state != Response::CHUNK) {
@@ -319,17 +333,17 @@ int Response::generateResponse(int epollFD) {
 	} else if (_request->getMethod() == "PUT") {
 		handlePutRequest();
 	} else {
-		return (setError(405), OK);
+		return setError(405), OK;
 	}
 	return OK;
 }
 
 void Response::setState(responseState state) {
 	if (_state == Response::FINISH) {
-		return (Logger::log(Logger::DEBUG, "[Response::setState] Response already finished"));
+		return Logger::log(Logger::DEBUG, "[Response::setState] Response already finished");
 	}
 	if (_state == state) {
-		return (Logger::log(Logger::DEBUG, "[Response::setState] Response already in this state"));
+		return Logger::log(Logger::DEBUG, "[Response::setState] Response already in this state");
 	}
 	_state = state;
 	if (_state == Response::INIT) {
@@ -357,7 +371,7 @@ int Response::handleCgi() {
 	bool isInit = _state == Response::INIT;
 	if (_state == Response::INIT) {
 		if (lseek(_request->_cgi._cgiHandler->getFdOut(), 0, SEEK_SET) == FAIL) {
-			return (setError(500), OK);
+			return setError(500), OK;
 		}
 		setState(Response::PROCESS);
 	}
@@ -366,7 +380,7 @@ int Response::handleCgi() {
 	ssize_t bytesRead = read(_request->_cgi._cgiHandler->getFdOut(), buffer, RESPONSE_READ_BUFFER_SIZE - 1);
 	if (bytesRead == FAIL) {
 		if (isInit) {
-			return (setError(500), OK);
+			return setError(500), OK;
 		}
 		throw IntException(500);
 	}
@@ -374,7 +388,7 @@ int Response::handleCgi() {
 		Logger::log(Logger::DEBUG, "[Reponse::handleCgi] No more data to read");
 		if (_cgiHandler._isChunked)
 			_response += "0\r\n\r\n";
-		return (setState(Response::FINISH), OK);
+		return setState(Response::FINISH), OK;
 	}
 	buffer[bytesRead] = '\0';
 	std::string str(buffer, bytesRead);

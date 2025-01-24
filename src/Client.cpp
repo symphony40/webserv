@@ -39,7 +39,7 @@ void Client::handleRequest() {
 }
 
 void Client::handleResponse(int epollFD) {
-	if (_response->generateResponse(epollFD) == -1) {
+	if (_response->generateResponse() == -1) {
 		return;
 	}
 	Logger::log(Logger::DEBUG, "Response to send: \n%s", _response->getResponse().c_str());

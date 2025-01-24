@@ -117,7 +117,7 @@ void BlockConfigRoute::checkDoubleLine() {
 		}
 	}
 	if (_counters["root"] > 0 && _counters["alias"] > 0) {
-		Logger::log(Logger::FATAL, "Alias and Root can't be set in same route bloc %s", _path.c_str());
+		Logger::log(Logger::FATAL, "Alias and Root cannot be set in same route block %s", _path.c_str());
 	}
 }
 
@@ -132,7 +132,7 @@ void BlockConfigRoute::setDefaultValues() {
 	}
 }
 
-bool BlockConfigRoute::isValidLineLocation(std::vector<std::string> &tokens, std::string &key) {
+bool BlockConfigRoute::isValidLineRoute(std::vector<std::string> &tokens, std::string &key) {
 	if (tokens.size() < 2) {
 		return false;
 	}
@@ -158,11 +158,11 @@ bool BlockConfigRoute::isValidLineLocation(std::vector<std::string> &tokens, std
 	return true;
 }
 
-BlockConfigRoute BlockConfigRoute::getLocationConfig(std::ifstream &configFile, std::string &path) {
+BlockConfigRoute BlockConfigRoute::getRouteConfig(std::ifstream &configFile, std::string &path) {
 	std::string line;
 	std::vector<std::string> tokens;
 	std::string key;
-	bool isCloseLocation = false;
+	bool isCloseRoute = false;
 
 	setPath(path);
 	while (std::getline(configFile, line)) {
@@ -174,16 +174,16 @@ BlockConfigRoute BlockConfigRoute::getLocationConfig(std::ifstream &configFile, 
 		tokens = Utils::split(line, " ");
 		key = tokens[0];
 		if (key[0] == '}' && key.size() == 1 && tokens.size() == 1) {
-			isCloseLocation = true;
+			isCloseRoute = true;
 			break;
 		}
-		if (isValidLineLocation(tokens, key)) {
+		if (isValidLineRoute(tokens, key)) {
 			continue;
 		} else {
 			Logger::log(Logger::FATAL, "Invalid line: \"%s\" in file: %s:%d", line.c_str(), _filename.c_str(), ConfigParser::fileLineCount);
 		}
 	}
-	if (!isCloseLocation && !Utils::isEmptyFile()) {
+	if (!isCloseRoute && !Utils::isEmptyFile()) {
 		Logger::log(Logger::FATAL, "Missing } in file: %s:%d", _filename.c_str(), ConfigParser::fileLineCount);
 	}
 	checkDoubleLine();
@@ -214,7 +214,7 @@ void BlockConfigRoute::printMap(std::string const &label, const std::map<std::st
 }
 
 
-void BlockConfigRoute::printLocation() {
+void BlockConfigRoute::printRoute() {
 	printPair("Path", _path);
 	printPair("Root", _root);
 	printPair("Alias", _alias);
@@ -286,6 +286,8 @@ std::string const &BlockConfigRoute::getAlias() const { return _alias; }
 std::string const &BlockConfigRoute::getPath() const { return _path; }
 
 std::string const &BlockConfigRoute::getRoot() const { return _root; }
+
+std::string const &BlockConfigRoute::getUploadPath() const { return _uploadPath; }
 
 void BlockConfigRoute::setAlias(std::string const &alias) { _alias = alias;  _counters["alias"]++;}
 

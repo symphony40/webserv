@@ -24,7 +24,7 @@ std::string	Request::getParseStateString(parsingState state) {
 	}
 }
 
-Request::Request(Client *client) : _client(client), _serverBlock(NULL), _locationBlock(NULL),  _rawRequest(""), _httpMethod(""), _uri(""), _path(""), _httpVersion(""), _isChunked(false), _cgi(this), _contentLength(0),  _chunkSize(-1), _timeout(0), _state(Request::INIT), _stateCode(REQUEST_DEFAULT_STATE_CODE) {
+Request::Request(Client *client) : _client(client), _serverBlock(NULL), _routeBlock(NULL),  _rawRequest(""), _httpMethod(""), _uri(""), _path(""), _httpVersion(""), _isChunked(false), _cgi(this), _contentLength(0),  _chunkSize(-1), _timeout(0), _state(Request::INIT), _stateCode(REQUEST_DEFAULT_STATE_CODE) {
 	initServer();
 }
 
@@ -41,7 +41,7 @@ Request &Request::operator=(Request const &obj) {
 		_headers = obj._headers;
 		_httpVersion = obj._httpVersion;
 		_isChunked = obj._isChunked;
-		_locationBlock = obj._locationBlock;
+		_routeBlock = obj._routeBlock;
 		_httpMethod = obj._httpMethod;
 		_path = obj._path;
 		_query = obj._query;
@@ -413,7 +413,7 @@ void Request::setState(parsingState state) {
 
 void Request::setHeaderState() {
 	if (findServer() == FAIL 
-		|| findLocation() == FAIL 
+		|| findRoute() == FAIL 
 		|| checkHttpMethod() == FAIL 
 		|| checkTransferEncoding() == FAIL 
 		|| checkClientMaxBodySize() == FAIL 
@@ -429,7 +429,7 @@ void Request::setError(int code) {
 
 int Request::processUri() {
 	if (Utils::urlDecode(_uri) == FAIL) {
-		return (setError(400), FAIL);
+		return setError(400), FAIL;
 	}
 	size_t pos = _uri.find('?');
 	if (pos != std::string::npos) {
@@ -460,7 +460,7 @@ int	Request::findServer() {
 		setError(500);
 		return FAIL;
 	}
-	std::vector<BlockConfigServer>* servers = socket->getServers();
+	std::vector<BlockConfigServer> *servers = socket->getServers();
 	for (std::vector<BlockConfigServer>::iterator it = servers->begin(); it != servers->end(); it++) {
 		std::vector<std::string> serverNames = it->getServerNames();
 		for (std::vector<std::string>::iterator it2 = serverNames.begin(); it2 != serverNames.end(); it2++) {
@@ -473,25 +473,25 @@ int	Request::findServer() {
 	return 1;
 }
 
-int	Request::findLocation() {
+int	Request::findRoute() {
 	if (!_serverBlock) {
-		Logger::log(Logger::ERROR, "[findLocation] Server is NULL");
+		Logger::log(Logger::ERROR, "[findRoute] Server is NULL");
 		setError(500);
 		return FAIL;
 	}
-	BlockConfigRoute *locationBlock = NULL;
-	std::vector<BlockConfigRoute>* locations = _serverBlock->getLocations();
+	BlockConfigRoute *routeBlock = NULL;
+	std::vector<BlockConfigRoute> *routes = _serverBlock->getRoutes();
 	int lastClosestMatch = -1;
-	for (std::vector<BlockConfigRoute>::iterator it = locations->begin(); it != locations->end(); ++it) {
+	for (std::vector<BlockConfigRoute>::iterator it = routes->begin(); it != routes->end(); ++it) {
 		std::string	path = it->getPath();
 		if (checkPathsMatch(_path, path)) {
 			if ((int)path.size() > lastClosestMatch) {
 				lastClosestMatch = path.size();
-				locationBlock = &(*it);
+				routeBlock = &(*it);
 			}
 		}
 	}
-	_locationBlock = locationBlock;
+	_routeBlock = routeBlock;
 	return OK;
 }
 
@@ -522,7 +522,7 @@ int Request::checkClientMaxBodySize() {
 }
 
 int	Request::checkHttpMethod() {
-	if (!_locationBlock || _locationBlock->isMethodAllowed(BlockConfigRoute::converStrToMethod(_httpMethod))) {
+	if (!_routeBlock || _routeBlock->isMethodAllowed(BlockConfigRoute::converStrToMethod(_httpMethod))) {
 		return OK;
 	}
 	Logger::log(Logger::ERROR, "[checkHttpMethod] Method not allowed: %s", _httpMethod.c_str());
@@ -542,15 +542,15 @@ int	Request::checkPathsMatch(std::string const &path, std::string const &parentP
 }
 
 int Request::checkCgi() {
-	if (!_locationBlock) {
+	if (!_routeBlock) {
 		return OK;
 	}
-	std::vector<std::string> allPathsLocations = getAllPathLocations();
-	for (size_t i = 0; i < allPathsLocations.size(); i++) {
-		for (std::map<std::string, std::string>::const_iterator it = _locationBlock->getCGI().begin(); it != _locationBlock->getCGI().end(); it++) {
-			if (Utils::getExtension(allPathsLocations[i]) == it->first) {
-				if (Utils::fileExists(allPathsLocations[i])) {
-					return (setCgi(true, allPathsLocations[i], it->second), OK);
+	std::vector<std::string> allPathsInRoute = getAllPathsInRoute();
+	for (size_t i = 0; i < allPathsInRoute.size(); i++) {
+		for (std::map<std::string, std::string>::const_iterator it = _routeBlock->getCGI().begin(); it != _routeBlock->getCGI().end(); it++) {
+			if (Utils::getExtension(allPathsInRoute[i]) == it->first) {
+				if (Utils::fileExists(allPathsInRoute[i])) {
+					return setCgi(true, allPathsInRoute[i], it->second), OK;
 				}
 			}
 		}
@@ -564,7 +564,7 @@ void Request::defineBodyDestination() {
 			return setError(415);
 		}
 		bool isPathDir = _path.size() > 1 && _path[_path.size() - 1] == '/';
-		_body._path = (_locationBlock && !_locationBlock->getRoot().empty()) ? _locationBlock->getRoot() : _serverBlock->getRoot();
+		_body._path = (_routeBlock && !_routeBlock->getRoot().empty()) ? _routeBlock->getRoot() : _serverBlock->getRoot();
 		if (!isPathDir) {
 			_body._path += _path;
 			if (_httpMethod == "POST" && Utils::fileExists(_body._path)) {
@@ -634,7 +634,7 @@ void Request::initServer() {
 		setError(500);
 		return ;
 	}
-	std::vector<BlockConfigServer>* servers = socket->getServers();
+	std::vector<BlockConfigServer> *servers = socket->getServers();
 	if (servers->empty()) {
 		Logger::log(Logger::ERROR, "[initServer] No server found");
 		setError(500);
@@ -643,15 +643,15 @@ void Request::initServer() {
 	_serverBlock = &servers->front();
 }
 
-std::vector<std::string> Request::getAllPathLocations() {
-	if (!_locationBlock) {
+std::vector<std::string> Request::getAllPathsInRoute() {
+	if (!_routeBlock) {
 		return std::vector<std::string>();
 	}
-	std::vector<std::string> allPathsLocations;
+	std::vector<std::string> allPathsInRoute;
 	std::string path = _path;
-	std::string root = _locationBlock->getRoot();
-	std::string alias = _locationBlock->getAlias();
-	std::vector<std::string> indexes = _locationBlock->getIndexes();
+	std::string root = _routeBlock->getRoot();
+	std::string alias = _routeBlock->getAlias();
+	std::vector<std::string> indexes = _routeBlock->getIndexes();
 	bool isAlias = false;
 	if (root.empty()) {
 		root = _serverBlock->getRoot();
@@ -662,9 +662,9 @@ std::vector<std::string> Request::getAllPathLocations() {
 	}
 	if (path[path.size() - 1] != '/') {
 		if (isAlias) {
-			path = path.substr(_locationBlock->getPath().size());
+			path = path.substr(_routeBlock->getPath().size());
 		}
-		allPathsLocations.push_back(root + path);
+		allPathsInRoute.push_back(root + path);
 	}
 	for (size_t i = 0; i < indexes.size(); i++) {
 		std::string index = indexes[i];
@@ -676,14 +676,14 @@ std::vector<std::string> Request::getAllPathLocations() {
 		} else {
 			path = root + path + index;
 		}
-		allPathsLocations.push_back(path);
+		allPathsInRoute.push_back(path);
 		path = tmpPath;
 	}
-	return allPathsLocations;
+	return allPathsInRoute;
 }
 
 
-BlockConfigRoute *Request::getLocation() const { return _locationBlock; }
+BlockConfigRoute *Request::getRoute() const { return _routeBlock; }
 
 BlockConfigServer *Request::getServer() const { return _serverBlock; }
 

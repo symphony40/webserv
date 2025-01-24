@@ -37,10 +37,10 @@ void RequestCgi::start() {
 	} catch (ChildProcessException &e) {
 		throw ChildProcessException();
 	} catch (IntException &e) {
-		return (_request->setError(e.code()));
+		return _request->setError(e.code());
 	} catch (std::exception &e) {
 		Logger::log(Logger::ERROR, "Failed to handle CGI: %s", e.what());
-		return (_request->setError(500));
+		return _request->setError(500);
 	}
 }
 
@@ -73,5 +73,5 @@ void RequestCgi::killCgiProcess() {
 	if (!_cgiHandler) {
 		return;
 	}
-	kill(_cgiHandler->_pid, SIGTERM); // OR SIGKILL
+	kill(_cgiHandler->_pid, SIGTERM);
 }
